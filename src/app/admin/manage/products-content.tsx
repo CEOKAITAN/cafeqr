@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { resizeImageToBase64 } from "@/lib/image";
 
 type MenuItem = {
   id: number;
@@ -175,20 +176,16 @@ export default function ProductsContent() {
   }
 
   async function processFile(file: File) {
-    if (file.size > 5 * 1024 * 1024) {
-      alert("ไฟล์ใหญ่เกิน 5MB");
+    if (!file.type.startsWith("image/")) {
+      alert("ต้องเป็นไฟล์รูปภาพ");
       return;
     }
     setUploading(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "อัปโหลดไม่สำเร็จ");
-      setForm((f) => ({ ...f, imageUrl: data.url }));
+      const base64 = await resizeImageToBase64(file, 600);
+      setForm((f) => ({ ...f, imageUrl: base64 }));
     } catch (e) {
-      alert(e instanceof Error ? e.message : "อัปโหลดรูปไม่สำเร็จ");
+      alert(e instanceof Error ? e.message : "ประมวลผลรูปไม่สำเร็จ");
     } finally {
       setUploading(false);
     }

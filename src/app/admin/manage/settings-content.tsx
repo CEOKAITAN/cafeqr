@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { resizeImageToBase64 } from "@/lib/image";
 
 export default function SettingsContent() {
   const [shopName, setShopName] = useState("");
@@ -69,16 +70,17 @@ export default function SettingsContent() {
   async function uploadBanner(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      alert("ต้องเป็นไฟล์รูปภาพ");
+      return;
+    }
     setUploadingBanner(true);
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "อัปโหลดไม่สำเร็จ");
-      setBannerUrl(data.url);
+      // แบนเนอร์แนวนอน ย่อกว้างสุด 1000px
+      const base64 = await resizeImageToBase64(file, 1000, 0.75);
+      setBannerUrl(base64);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "อัปโหลดแบนเนอร์ไม่สำเร็จ");
+      alert(err instanceof Error ? err.message : "ประมวลผลแบนเนอร์ไม่สำเร็จ");
     } finally {
       setUploadingBanner(false);
     }

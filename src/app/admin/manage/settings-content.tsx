@@ -328,7 +328,7 @@ export default function SettingsContent() {
 
       <button
         onClick={save}
-        className="px-4 py-2 rounded bg-neutral-900 text-white text-sm font-semibold"
+        className="px-4 py-2 rounded-full bg-[var(--accent)] text-white text-sm font-semibold"
       >
         บันทึก
       </button>

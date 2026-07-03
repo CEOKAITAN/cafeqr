@@ -61,7 +61,7 @@ export default function CategoriesPage() {
         />
         <button
           onClick={add}
-          className="px-4 py-2 rounded bg-neutral-900 text-white text-sm font-semibold"
+          className="px-4 py-2 rounded-full bg-[var(--accent)] text-white text-sm font-semibold"
         >
           + เพิ่มหมวดหมู่
         </button>
@@ -88,7 +88,7 @@ export default function CategoriesPage() {
                 <>
                   <button
                     onClick={() => save(c.id)}
-                    className="text-xs px-2 py-1 rounded bg-neutral-900 text-white"
+                    className="text-xs px-2 py-1 rounded-full bg-[var(--accent)] text-white"
                   >
                     บันทึก
                   </button>

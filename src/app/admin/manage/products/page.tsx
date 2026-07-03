@@ -144,7 +144,7 @@ export default function ProductsPage() {
         <div className="flex gap-2 mt-3">
           <button
             onClick={save}
-            className="px-4 py-2 rounded bg-neutral-900 text-white text-sm font-semibold"
+            className="px-4 py-2 rounded-full bg-[var(--accent)] text-white text-sm font-semibold"
           >
             {editingId ? "บันทึกการแก้ไข" : "+ เพิ่มสินค้า"}
           </button>
@@ -171,7 +171,7 @@ export default function ProductsPage() {
               <div className="font-semibold text-sm flex items-center gap-2">
                 {item.name}
                 {item.featured && (
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-neutral-900 text-white font-bold">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--accent)] text-white font-bold">
                     แนะนำ
                   </span>
                 )}

@@ -87,7 +87,7 @@ export default function FeaturedContent() {
           <button
             onClick={() => bulkSetFeatured(true)}
             disabled={items.filter((i) => i.featured).length >= 10}
-            className="ml-auto px-3 py-1.5 text-sm rounded bg-neutral-900 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            className="ml-auto px-3 py-1.5 text-sm rounded-full bg-[var(--accent)] text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
             ตั้งเป็นแนะนำ {selected.size} อัน
           </button>
@@ -173,7 +173,7 @@ function Row({
             ? "border border-neutral-300 text-neutral-600"
             : isDisabled
               ? "bg-neutral-400 text-white cursor-not-allowed"
-              : "bg-neutral-900 text-white"
+              : "bg-[var(--accent)] text-white"
         }`}
       >
         {item.featured ? "เอาออกจากแนะนำ" : "+ ตั้งเป็นแนะนำ"}

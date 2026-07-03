@@ -82,7 +82,7 @@ function Row({ item, onToggle }: { item: MenuItem; onToggle: () => void }) {
         className={`text-xs px-3 py-1.5 rounded font-semibold ${
           item.featured
             ? "border border-neutral-300 text-neutral-600"
-            : "bg-neutral-900 text-white"
+            : "bg-[var(--accent)] text-white"
         }`}
       >
         {item.featured ? "เอาออกจากแนะนำ" : "+ ตั้งเป็นแนะนำ"}

@@ -86,7 +86,7 @@ export default function HistoryPage() {
             }}
             className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors ${
               filter === tab.id
-                ? "bg-neutral-900 text-white"
+                ? "bg-[var(--accent)] text-white"
                 : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
             }`}
           >
@@ -154,7 +154,7 @@ export default function HistoryPage() {
                   <td className="px-3 py-2 text-center">
                     <button
                       onClick={() => setSelectedLog(log)}
-                      className="px-3 py-1 text-xs rounded bg-neutral-900 text-white font-semibold hover:bg-neutral-800 transition"
+                      className="px-3 py-1 text-xs rounded-full bg-[var(--accent)] text-white font-semibold hover:opacity-90 transition"
                     >
                       ดูรายการ
                     </button>
@@ -202,7 +202,7 @@ export default function HistoryPage() {
             </div>
             <button
               onClick={() => setSelectedLog(null)}
-              className="w-full px-4 py-2 rounded bg-neutral-900 text-white text-sm font-semibold"
+              className="w-full px-4 py-2 rounded-full bg-[var(--accent)] text-white text-sm font-semibold"
             >
               ปิด
             </button>

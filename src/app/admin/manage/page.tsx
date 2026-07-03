@@ -27,7 +27,7 @@ export default function ManagePage() {
             onClick={() => setActiveTab(tab.id)}
             className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors ${
               activeTab === tab.id
-                ? "bg-neutral-900 text-white"
+                ? "bg-[var(--accent)] text-white"
                 : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
             }`}
           >

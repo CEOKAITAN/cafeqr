@@ -43,12 +43,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <header className="bg-white border-b border-neutral-200 sticky top-0 z-20">
+    <div className="min-h-screen bg-orange-50/40">
+      <header className="bg-white border-b border-orange-100 sticky top-0 z-20 shadow-sm">
         <div className="px-4 sm:px-6 py-3">
           <div className="flex items-center justify-between gap-4 mb-0">
             <div className="flex items-center gap-3">
-              <span className="font-extrabold text-2xl tracking-tight text-neutral-900">
+              <span className="font-extrabold text-2xl tracking-tight text-[var(--accent-dark)]">
                 {shopName}
               </span>
               <span className="text-sm text-neutral-400 font-medium hidden sm:inline">
@@ -91,8 +91,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 href={item.href}
                 className={`px-4 py-2 text-sm font-bold flex items-center border-b-2 transition-colors ${
                   isActive(item.href)
-                    ? "border-neutral-900 text-neutral-900"
-                    : "border-transparent text-neutral-500 hover:text-neutral-900"
+                    ? "border-[var(--accent)] text-[var(--accent-dark)]"
+                    : "border-transparent text-neutral-500 hover:text-[var(--accent-dark)]"
                 }`}
               >
                 {item.label}
@@ -109,7 +109,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
                 className={`block px-4 py-3 text-sm font-bold border-b border-neutral-100 ${
-                  isActive(item.href) ? "text-neutral-900 bg-neutral-50" : "text-neutral-500"
+                  isActive(item.href) ? "text-[var(--accent-dark)] bg-orange-50" : "text-neutral-500"
                 }`}
               >
                 {item.label}

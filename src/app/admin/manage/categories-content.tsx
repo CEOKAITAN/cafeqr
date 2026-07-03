@@ -90,7 +90,7 @@ export default function CategoriesContent() {
         />
         <button
           onClick={add}
-          className="px-4 py-2 rounded bg-neutral-900 text-white text-sm font-semibold whitespace-nowrap"
+          className="px-4 py-2 rounded-full bg-[var(--accent)] text-white text-sm font-semibold whitespace-nowrap"
         >
           + เพิ่ม
         </button>
@@ -164,7 +164,7 @@ export default function CategoriesContent() {
                 <>
                   <button
                     onClick={() => save(c.id)}
-                    className="text-sm px-4 py-2 rounded bg-neutral-900 text-white font-semibold"
+                    className="text-sm px-4 py-2 rounded-full bg-[var(--accent)] text-white font-semibold"
                   >
                     บันทึก
                   </button>

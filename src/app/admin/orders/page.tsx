@@ -282,7 +282,7 @@ export default function OrdersPage() {
                         {o.status === "PENDING" && (
                           <button
                             onClick={() => setOrderStatus(o.id, "COOKING")}
-                            className="flex-1 py-2 rounded-lg bg-neutral-900 text-white font-semibold hover:bg-neutral-800 transition"
+                            className="flex-1 py-2 rounded-full bg-[var(--accent)] text-white font-semibold hover:opacity-90 transition"
                           >
                             รับออเดอร์
                           </button>
@@ -372,7 +372,7 @@ export default function OrdersPage() {
             <div className="flex gap-2">
               <button
                 onClick={addNewTable}
-                className="flex-1 px-4 py-2 rounded bg-neutral-900 text-white text-sm font-semibold"
+                className="flex-1 px-4 py-2 rounded-full bg-[var(--accent)] text-white text-sm font-semibold"
               >
                 เพิ่ม
               </button>
@@ -408,7 +408,7 @@ export default function OrdersPage() {
             <div className="flex gap-2">
               <button
                 onClick={updateTableName}
-                className="flex-1 px-4 py-2 rounded bg-neutral-900 text-white text-sm font-semibold"
+                className="flex-1 px-4 py-2 rounded-full bg-[var(--accent)] text-white text-sm font-semibold"
               >
                 บันทึก
               </button>
@@ -774,7 +774,7 @@ function EditOrderModal({
       <button
         onClick={save}
         disabled={saving}
-        className="w-full mt-4 py-2.5 rounded bg-neutral-900 text-white font-semibold disabled:opacity-50"
+        className="w-full mt-4 py-2.5 rounded-full bg-[var(--accent)] text-white font-semibold disabled:opacity-50"
       >
         {saving ? "กำลังบันทึก..." : "บันทึกการแก้ไข"}
       </button>

@@ -8,7 +8,8 @@ const NAV_ITEMS = [
   { href: "/admin", label: "หน้าแรก" },
   { href: "/admin/orders", label: "จัดการออเดอร์" },
   { href: "/admin/history", label: "ประวัติ" },
-  { href: "/admin/manage", label: "จัดการร้านค้าและสินค้า" },
+  { href: "/admin/manage", label: "จัดการสินค้า" },
+  { href: "/admin/settings", label: "ตั้งค่าร้านค้า" },
 ];
 
 

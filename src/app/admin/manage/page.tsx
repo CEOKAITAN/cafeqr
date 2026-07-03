@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import SettingsContent from "./settings-content";
 import CategoriesContent from "./categories-content";
 import ProductsContent from "./products-content";
 import FeaturedContent from "./featured-content";
@@ -10,7 +9,6 @@ const TABS = [
   { id: "categories", label: "จัดการหมวดหมู่สินค้า" },
   { id: "products", label: "จัดการสินค้า" },
   { id: "featured", label: "จัดการสินค้าแนะนำ" },
-  { id: "settings", label: "⚙️ ตั้งค่าร้านค้า" },
 ];
 
 export default function ManagePage() {
@@ -18,7 +16,7 @@ export default function ManagePage() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-xl font-extrabold text-neutral-900 mb-4">จัดการร้านค้าและสินค้า</h1>
+      <h1 className="text-xl font-extrabold text-[var(--accent-dark)] mb-4">จัดการสินค้า</h1>
 
       <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
         {TABS.map((tab) => (

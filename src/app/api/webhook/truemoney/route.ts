@@ -70,7 +70,10 @@ export async function POST(req: NextRequest) {
 
     const sessions = await prisma.session.findMany({
       where: { status: "OPEN" },
-      include: { orders: { include: { items: true } } },
+      include: {
+        orders: { include: { items: true } },
+        table: true
+      },
     });
 
     let matchedSession = null;

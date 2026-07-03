@@ -49,6 +49,10 @@ export default function TableOrderPage() {
   const [shopName, setShopName] = useState("");
   const [bannerUrl, setBannerUrl] = useState("");
   const [promoText, setPromoText] = useState("");
+  const [heroImageUrl, setHeroImageUrl] = useState("");
+  const [popupImageUrl, setPopupImageUrl] = useState("");
+  const [popupEnabled, setPopupEnabled] = useState(false);
+  const [popupOpen, setPopupOpen] = useState(false);
   const [tableName, setTableName] = useState("");
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -93,6 +97,12 @@ export default function TableOrderPage() {
         setShopName(data.shopName || "");
         setBannerUrl(data.bannerUrl || "");
         setPromoText(data.promoText || "");
+        setHeroImageUrl(data.heroImageUrl || "");
+        setPopupImageUrl(data.popupImageUrl || "");
+        if (data.popupEnabled && data.popupImageUrl) {
+          setPopupEnabled(true);
+          setPopupOpen(true);
+        }
       });
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadSession();
@@ -313,11 +323,18 @@ export default function TableOrderPage() {
       </div>
 
       {/* HERO */}
-      <header className="relative bg-gradient-to-br from-[var(--accent)] to-[var(--accent-dark)] text-white overflow-hidden">
-        <div className="absolute inset-0 opacity-10 pointer-events-none">
-          <div className="absolute -right-10 -top-10 w-48 h-48 rounded-full bg-white" />
-          <div className="absolute right-20 top-20 w-24 h-24 rounded-full bg-white" />
-        </div>
+      <header
+        className="relative bg-gradient-to-br from-[var(--accent)] to-[var(--accent-dark)] text-white overflow-hidden bg-cover bg-center"
+        style={heroImageUrl ? { backgroundImage: `url(${heroImageUrl})` } : undefined}
+      >
+        {heroImageUrl ? (
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-[var(--accent-dark)]/90 via-[var(--accent)]/60 to-[var(--accent)]/30" />
+        ) : (
+          <div className="absolute inset-0 opacity-10 pointer-events-none">
+            <div className="absolute -right-10 -top-10 w-48 h-48 rounded-full bg-white" />
+            <div className="absolute right-20 top-20 w-24 h-24 rounded-full bg-white" />
+          </div>
+        )}
         <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-8 md:py-12">
           <div className="text-xs md:text-sm opacity-90 mb-1">ยินดีต้อนรับสู่</div>
           <h1 className="text-2xl md:text-4xl font-extrabold">{shopName || "ร้านของเรา"}</h1>
@@ -617,6 +634,30 @@ export default function TableOrderPage() {
                 </p>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ป๊อปอัพโฆษณา */}
+      {popupEnabled && popupOpen && popupImageUrl && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-7"
+          onClick={() => setPopupOpen(false)}
+        >
+          <div className="relative w-full max-w-xs" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setPopupOpen(false)}
+              className="absolute -top-4 -right-2 w-9 h-9 rounded-full bg-white text-gray-800 text-xl shadow-lg flex items-center justify-center z-10"
+              aria-label="ปิด"
+            >
+              ×
+            </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={popupImageUrl}
+              alt="โปรโมชัน"
+              className="w-full drop-shadow-2xl"
+            />
           </div>
         </div>
       )}

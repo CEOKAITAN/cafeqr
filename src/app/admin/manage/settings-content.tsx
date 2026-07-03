@@ -12,6 +12,11 @@ export default function SettingsContent() {
   const [promoText, setPromoText] = useState("");
   const [bannerUrl, setBannerUrl] = useState("");
   const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [heroImageUrl, setHeroImageUrl] = useState("");
+  const [uploadingHero, setUploadingHero] = useState(false);
+  const [popupImageUrl, setPopupImageUrl] = useState("");
+  const [popupEnabled, setPopupEnabled] = useState(false);
+  const [uploadingPopup, setUploadingPopup] = useState(false);
   const [saved, setSaved] = useState(false);
   const [warning, setWarning] = useState("");
   const [clearDataOpen, setClearDataOpen] = useState(false);
@@ -35,6 +40,9 @@ export default function SettingsContent() {
         setAcceptingOrders(data.acceptingOrders);
         setPromoText(data.promoText || "");
         setBannerUrl(data.bannerUrl || "");
+        setHeroImageUrl(data.heroImageUrl || "");
+        setPopupImageUrl(data.popupImageUrl || "");
+        setPopupEnabled(data.popupEnabled || false);
         setUseTrueMoneyBox(data.useTrueMoneyBox || false);
         setTrueMoneyApiKey(data.trueMoneyApiKey || "");
         setTrueMoneyMerchantCode(data.trueMoneyMerchantCode || "");
@@ -54,6 +62,9 @@ export default function SettingsContent() {
         acceptingOrders,
         promoText,
         bannerUrl,
+        heroImageUrl,
+        popupImageUrl,
+        popupEnabled,
         useTrueMoneyBox,
         trueMoneyApiKey,
         trueMoneyMerchantCode,
@@ -84,6 +95,30 @@ export default function SettingsContent() {
     } finally {
       setUploadingBanner(false);
     }
+  }
+
+  async function uploadHero(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { alert("ต้องเป็นไฟล์รูปภาพ"); return; }
+    setUploadingHero(true);
+    try {
+      const base64 = await resizeImageToBase64(file, 1000, 0.75);
+      setHeroImageUrl(base64);
+    } catch { alert("ประมวลผลรูปไม่สำเร็จ"); }
+    finally { setUploadingHero(false); }
+  }
+
+  async function uploadPopup(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { alert("ต้องเป็นไฟล์รูปภาพ"); return; }
+    setUploadingPopup(true);
+    try {
+      const base64 = await resizeImageToBase64(file, 800, 0.8);
+      setPopupImageUrl(base64);
+    } catch { alert("ประมวลผลรูปไม่สำเร็จ"); }
+    finally { setUploadingPopup(false); }
   }
 
   async function clearAllData() {
@@ -204,6 +239,46 @@ export default function SettingsContent() {
           className="text-sm"
         />
         {uploadingBanner && <span className="ml-2 text-sm text-neutral-500">กำลังอัปโหลด...</span>}
+      </div>
+
+      <div className="border-t border-neutral-200 pt-6 mt-6">
+        <h3 className="font-bold text-sm text-neutral-900 mb-3">🎨 รูปพื้นหลังส่วนหัว (Hero)</h3>
+        <p className="text-xs text-neutral-500 mb-3">
+          รูปพื้นหลังของส่วนหัวหน้าลูกค้า จะมีเคลือบสีส้มทับให้ตัวอักษรอ่านออก — ถ้าไม่ใส่จะเป็นพื้นไล่สีส้มปกติ
+        </p>
+        {heroImageUrl && (
+          <div className="mb-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={heroImageUrl} alt="hero" className="w-full rounded-lg border border-neutral-200" />
+            <button onClick={() => setHeroImageUrl("")} className="mt-2 text-xs text-red-600 font-semibold">
+              ลบรูปพื้นหลัง (กลับเป็นพื้นส้มเดิม)
+            </button>
+          </div>
+        )}
+        <input type="file" accept="image/*" onChange={uploadHero} disabled={uploadingHero} className="text-sm" />
+        {uploadingHero && <span className="ml-2 text-sm text-neutral-500">กำลังอัปโหลด...</span>}
+      </div>
+
+      <div className="border-t border-neutral-200 pt-6 mt-6">
+        <h3 className="font-bold text-sm text-neutral-900 mb-3">📣 ป๊อปอัพโฆษณา (เด้งตอนเปิดเว็บ)</h3>
+        <label className="flex items-center justify-between border border-neutral-200 rounded px-3 py-2 mb-3">
+          <span className="text-sm font-semibold">เปิดใช้ป๊อปอัพ</span>
+          <input type="checkbox" checked={popupEnabled} onChange={(e) => setPopupEnabled(e.target.checked)} className="w-5 h-5" />
+        </label>
+        <p className="text-xs text-neutral-500 mb-3">
+          รูปโปรที่เด้งขึ้นกลางจอตอนลูกค้าเปิดเว็บ (แนะนำ PNG พื้นหลังโปร่งใส จะลอยเด่นสวย) — เด้งครั้งเดียวต่อการเข้า
+        </p>
+        {popupImageUrl && (
+          <div className="mb-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={popupImageUrl} alt="popup" className="max-h-48 rounded-lg border border-neutral-200" />
+            <button onClick={() => setPopupImageUrl("")} className="mt-2 block text-xs text-red-600 font-semibold">
+              ลบรูปป๊อปอัพ
+            </button>
+          </div>
+        )}
+        <input type="file" accept="image/*" onChange={uploadPopup} disabled={uploadingPopup} className="text-sm" />
+        {uploadingPopup && <span className="ml-2 text-sm text-neutral-500">กำลังอัปโหลด...</span>}
       </div>
 
       <div className="border-t border-neutral-200 pt-6 mt-6">

@@ -34,8 +34,7 @@ export default function ManagePage() {
         ))}
       </div>
 
-      <div className="bg-white border border-neutral-200 rounded-lg p-6 w-full">
-        {activeTab === "settings" && <SettingsContent />}
+      <div className="bg-white border border-orange-100 rounded-2xl p-6 w-full shadow-sm">
         {activeTab === "categories" && <CategoriesContent />}
         {activeTab === "products" && <ProductsContent />}
         {activeTab === "featured" && <FeaturedContent />}

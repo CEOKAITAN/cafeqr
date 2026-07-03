@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(run)",
+      "Skill(run:*)",
+      "PowerShell(taskkill /PID 36732 /F -ErrorAction SilentlyContinue)",
+      "PowerShell(\"Process stopped\")",
+      "PowerShell(taskkill /PID 36732 /F 2>$null)",
+      "PowerShell(\"Process killed, starting new server...\")",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:3000/api/dashboard)"
+    ]
+  }
+}

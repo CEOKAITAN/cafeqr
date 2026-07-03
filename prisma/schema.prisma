@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Settings {
+  id                      Int     @id @default(1)
+  shopName                String  @default("ร้านของฉัน")
+  promptPayId             String  @default("")
+  accountName             String  @default("")
+  tableCount              Int     @default(0)
+  acceptingOrders         Boolean @default(true)
+  useTrueMoneyBox         Boolean @default(false)
+  trueMoneyApiKey         String  @default("")
+  trueMoneyMerchantCode   String  @default("")
+  trueMoneySecret         String  @default("")
+}
+
+model Category {
+  id        Int        @id @default(autoincrement())
+  name      String
+  sortOrder Int        @default(0)
+  createdAt DateTime   @default(now())
+  menuItems MenuItem[]
+}
+
+model MenuItem {
+  id         Int         @id @default(autoincrement())
+  name       String
+  price      Int
+  category   Category?   @relation(fields: [categoryId], references: [id])
+  categoryId Int?
+  imageUrl   String?
+  available  Boolean     @default(true)
+  featured   Boolean     @default(false)
+  createdAt  DateTime    @default(now())
+  orderItems OrderItem[]
+}
+
+model DiningTable {
+  id        Int       @id @default(autoincrement())
+  name      String
+  createdAt DateTime  @default(now())
+  sessions  Session[]
+}
+
+model Session {
+  id        Int         @id @default(autoincrement())
+  table     DiningTable @relation(fields: [tableId], references: [id])
+  tableId   Int
+  status    String      @default("OPEN") // OPEN | CLOSED
+  createdAt DateTime    @default(now())
+  closedAt  DateTime?
+  orders    Order[]
+}
+
+model Order {
+  id        Int         @id @default(autoincrement())
+  session   Session     @relation(fields: [sessionId], references: [id])
+  sessionId Int
+  status    String      @default("PENDING") // PENDING | COOKING | DONE | CANCELLED
+  createdAt DateTime    @default(now())
+  items     OrderItem[]
+}
+
+model OrderItem {
+  id         Int      @id @default(autoincrement())
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId    Int
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  menuItemId Int
+  name       String
+  price      Int
+  quantity   Int
+}
+
+model ActivityLog {
+  id        Int      @id @default(autoincrement())
+  type      String   // CREATE_ORDER | EDIT_ORDER | CANCEL_ORDER | CONFIRM_PAYMENT | CLOSE_TABLE
+  tableName String
+  detail    String
+  amount    Int?
+  actor     String   @default("แอดมิน")
+  orderId   Int?
+  createdAt DateTime @default(now())
+}

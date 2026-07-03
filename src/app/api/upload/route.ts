@@ -21,17 +21,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "ไฟล์ใหญ่เกิน 5MB" }, { status: 400 });
     }
 
+    const token = process.env.BLOB_READ_WRITE_TOKEN;
+    if (!token) {
+      return NextResponse.json(
+        { error: "ยังไม่ได้ตั้งค่า Blob storage (BLOB_READ_WRITE_TOKEN)" },
+        { status: 500 }
+      );
+    }
+
     const ext = file.name.split(".").pop() || "jpg";
     const filename = `menu/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
     const blob = await put(filename, file, {
       access: "public",
       contentType: file.type,
+      token,
     });
 
     return NextResponse.json({ url: blob.url });
   } catch (error) {
     console.error("Blob upload error:", error);
-    return NextResponse.json({ error: "อัปโหลดไม่สำเร็จ" }, { status: 500 });
+    const msg = error instanceof Error ? error.message : "อัปโหลดไม่สำเร็จ";
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

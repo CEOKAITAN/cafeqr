@@ -21,3 +21,11 @@ body {
   color: var(--foreground);
   font-family: "Noto Sans Thai", Arial, Helvetica, sans-serif;
 }
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

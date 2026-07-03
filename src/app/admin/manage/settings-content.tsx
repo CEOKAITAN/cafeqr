@@ -157,34 +157,31 @@ export default function SettingsContent() {
         {useTrueMoneyBox && (
           <div className="space-y-3 mb-4 p-3 bg-blue-50 rounded-lg">
             <div>
-              <label className="block text-sm font-semibold mb-1">API Key</label>
+              <label className="block text-sm font-semibold mb-1">
+                Secret Key (ตั้งเองอะไรก็ได้)
+              </label>
               <input
-                value={trueMoneyApiKey}
-                onChange={(e) => setTrueMoneyApiKey(e.target.value)}
-                placeholder="API Key จาก TrueMoney Box"
-                className="w-full border border-neutral-300 rounded px-3 py-2 text-sm"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold mb-1">Merchant Code</label>
-              <input
-                value={trueMoneyMerchantCode}
-                onChange={(e) => setTrueMoneyMerchantCode(e.target.value)}
-                placeholder="Merchant Code"
-                className="w-full border border-neutral-300 rounded px-3 py-2 text-sm"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold mb-1">Secret Key</label>
-              <input
-                type="password"
                 value={trueMoneySecret}
                 onChange={(e) => setTrueMoneySecret(e.target.value)}
-                placeholder="Secret Key"
+                placeholder="เช่น cafeqr123"
                 className="w-full border border-neutral-300 rounded px-3 py-2 text-sm"
               />
+              <p className="text-xs text-neutral-500 mt-1">
+                ตั้งรหัสลับไว้กันคนอื่นยิงข้อมูลปลอมเข้ามา (ต้องตรงกับใน URL ด้านล่าง)
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold mb-1">
+                Webhook URL (นำไปใส่ในแอป TrueMoney)
+              </label>
+              <div className="bg-white border border-neutral-300 rounded px-3 py-2 text-xs break-all font-mono select-all">
+                {typeof window !== "undefined" ? window.location.origin : ""}
+                /api/webhook/truemoney{trueMoneySecret ? `?secret=${trueMoneySecret}` : ""}
+              </div>
+              <p className="text-xs text-neutral-500 mt-1">
+                คัดลอก URL นี้ไปใส่ในแอป TrueMoney หน้า “แจ้งการรับเงิน”
+              </p>
             </div>
           </div>
         )}

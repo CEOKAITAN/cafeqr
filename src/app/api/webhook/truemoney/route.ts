@@ -59,7 +59,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const amountBaht = Math.round(amount);
+    // ลองตีความยอดทั้งแบบบาท และแบบสตางค์ (÷100) เผื่อ TrueMoney ส่งมาต่างหน่วย
+    const possibleAmounts = new Set<number>([
+      Math.round(amount),
+      Math.round(amount / 100),
+    ]);
 
     // หา session ที่เปิดอยู่ซึ่งยอดรวมตรงกับเงินที่รับเข้ามา
     const sessions = await prisma.session.findMany({
@@ -72,24 +76,30 @@ export async function POST(req: NextRequest) {
     });
 
     let matched = null;
+    let matchedAmount = 0;
     for (const s of sessions) {
       const sessionTotal = s.orders.reduce(
         (sum, o) => sum + o.items.reduce((t, it) => t + it.price * it.quantity, 0),
         0
       );
-      if (sessionTotal === amountBaht && sessionTotal > 0) {
+      if (sessionTotal > 0 && possibleAmounts.has(sessionTotal)) {
         matched = s;
+        matchedAmount = sessionTotal;
         break;
       }
     }
 
     if (!matched) {
-      console.warn(`TrueMoney webhook: no OPEN session with total ${amountBaht} baht`);
+      console.warn(
+        `TrueMoney webhook: no OPEN session matching amount ${amount} (tried ${Array.from(possibleAmounts).join("/")} baht)`
+      );
       return NextResponse.json(
-        { ok: false, error: "no matching session", amount: amountBaht },
+        { ok: false, error: "no matching session", amount },
         { status: 404 }
       );
     }
+
+    const amountBaht = matchedAmount;
 
     const sender =
       (typeof body.sender_name === "string" && body.sender_name) ||

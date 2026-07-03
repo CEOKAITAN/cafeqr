@@ -7,14 +7,14 @@ import ProductsContent from "./products-content";
 import FeaturedContent from "./featured-content";
 
 const TABS = [
-  { id: "settings", label: "ชื่อร้าน / ชำระเงิน" },
   { id: "categories", label: "จัดการหมวดหมู่สินค้า" },
   { id: "products", label: "จัดการสินค้า" },
   { id: "featured", label: "จัดการสินค้าแนะนำ" },
+  { id: "settings", label: "⚙️ ตั้งค่าร้านค้า" },
 ];
 
 export default function ManagePage() {
-  const [activeTab, setActiveTab] = useState("settings");
+  const [activeTab, setActiveTab] = useState("categories");
 
   return (
     <div className="max-w-4xl mx-auto">

@@ -1,117 +1,120 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import crypto from "crypto";
 
 export const dynamic = "force-dynamic";
 
-function verifyJWT(token: string, secret: string): { isValid: boolean; payload?: any } {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return { isValid: false };
-
-    const [headerB64, payloadB64, signatureB64] = parts;
-    const message = `${headerB64}.${payloadB64}`;
-    const messageBuffer = Buffer.from(message, "utf8");
-    const secretBuffer = Buffer.from(secret, "utf8");
-
-    const expectedSignature = crypto
-      .createHmac("sha256", secretBuffer)
-      .update(messageBuffer)
-      .digest("base64url");
-
-    if (expectedSignature !== signatureB64) {
-      return { isValid: false };
-    }
-
-    const payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString("utf8"));
-    return { isValid: true, payload };
-  } catch (error) {
-    console.error("JWT verification error:", error);
-    return { isValid: false };
+// ดึงจำนวนเงินจาก payload (รองรับหลายชื่อฟิลด์ เพราะแต่ละบริการไม่เหมือนกัน)
+function extractAmount(body: Record<string, unknown>): number | null {
+  const candidates = [
+    body.amount,
+    body.received_amount,
+    body.amount_baht,
+    body.money,
+    body.value,
+  ];
+  for (const c of candidates) {
+    if (c === undefined || c === null) continue;
+    const n = typeof c === "string" ? parseFloat(c.replace(/,/g, "")) : Number(c);
+    if (!isNaN(n) && n > 0) return n;
   }
+  return null;
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const jwtToken = body.message;
+    const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
 
-    if (!jwtToken) {
-      return NextResponse.json({ ok: false, error: "no JWT token" }, { status: 400 });
-    }
+    // Log ข้อมูลดิบไว้ดู format จริงของ TrueMoney ใน Vercel Logs
+    console.log("TrueMoney webhook raw payload:", JSON.stringify(body));
 
     const settings = await prisma.settings.findUnique({ where: { id: 1 } });
-
-    if (!settings?.useTrueMoneyBox || !settings?.trueMoneySecret) {
+    if (!settings?.useTrueMoneyBox) {
       return NextResponse.json(
-        { ok: false, error: "TrueMoney Box not configured" },
+        { ok: false, error: "TrueMoney Box not enabled" },
         { status: 400 }
       );
     }
 
-    const { isValid, payload } = verifyJWT(jwtToken, settings.trueMoneySecret);
-
-    if (!isValid) {
-      console.warn("TrueMoney webhook signature verification failed");
-      return NextResponse.json({ ok: false, error: "invalid signature" }, { status: 403 });
+    // ตรวจ secret (ถ้าตั้งไว้) — ใส่ผ่าน header x-webhook-secret หรือ query ?secret=
+    if (settings.trueMoneySecret) {
+      const provided =
+        req.headers.get("x-webhook-secret") ||
+        req.nextUrl.searchParams.get("secret") ||
+        (typeof body.secret === "string" ? body.secret : "");
+      if (provided !== settings.trueMoneySecret) {
+        console.warn("TrueMoney webhook: secret mismatch");
+        return NextResponse.json(
+          { ok: false, error: "invalid secret" },
+          { status: 403 }
+        );
+      }
     }
 
-    const { event_type, amount, transaction_id } = payload;
-
-    if (event_type !== "P2P") {
-      return NextResponse.json({ ok: false, error: "unsupported event type" }, { status: 400 });
+    const amount = extractAmount(body);
+    if (amount === null) {
+      console.warn("TrueMoney webhook: no amount found in payload");
+      return NextResponse.json(
+        { ok: false, error: "no amount in payload" },
+        { status: 400 }
+      );
     }
 
-    if (!amount || !transaction_id) {
-      return NextResponse.json({ ok: false, error: "missing amount or transaction_id" }, { status: 400 });
-    }
+    const amountBaht = Math.round(amount);
 
-    const amountInBaht = Math.round(amount / 100);
-
+    // หา session ที่เปิดอยู่ซึ่งยอดรวมตรงกับเงินที่รับเข้ามา
     const sessions = await prisma.session.findMany({
       where: { status: "OPEN" },
       include: {
         orders: { include: { items: true } },
-        table: true
+        table: true,
       },
+      orderBy: { createdAt: "asc" },
     });
 
-    let matchedSession = null;
-    for (const session of sessions) {
-      const sessionTotal = session.orders.reduce(
-        (sum, o) => sum + o.items.reduce((s, it) => s + it.price * it.quantity, 0),
+    let matched = null;
+    for (const s of sessions) {
+      const sessionTotal = s.orders.reduce(
+        (sum, o) => sum + o.items.reduce((t, it) => t + it.price * it.quantity, 0),
         0
       );
-      if (sessionTotal === amountInBaht) {
-        matchedSession = session;
+      if (sessionTotal === amountBaht && sessionTotal > 0) {
+        matched = s;
         break;
       }
     }
 
-    if (!matchedSession) {
-      console.warn(`No matching session found for amount ${amountInBaht} baht`);
-      return NextResponse.json({ ok: false, error: "no matching session" }, { status: 404 });
+    if (!matched) {
+      console.warn(`TrueMoney webhook: no OPEN session with total ${amountBaht} baht`);
+      return NextResponse.json(
+        { ok: false, error: "no matching session", amount: amountBaht },
+        { status: 404 }
+      );
     }
+
+    const sender =
+      (typeof body.sender_name === "string" && body.sender_name) ||
+      (typeof body.sender_mobile === "string" && body.sender_mobile) ||
+      "TrueMoney";
 
     await prisma.activityLog.create({
       data: {
         type: "CONFIRM_PAYMENT",
-        tableName: matchedSession.table.name,
-        detail: `TrueMoney Box payment confirmed (TX: ${transaction_id})`,
-        amount: amountInBaht,
+        tableName: matched.table.name,
+        detail: `ชำระผ่าน TrueMoney Box โดย ${sender}`,
+        amount: amountBaht,
       },
     });
 
     await prisma.session.update({
-      where: { id: matchedSession.id },
+      where: { id: matched.id },
       data: { status: "CLOSED", closedAt: new Date() },
     });
 
-    return NextResponse.json({ ok: true, sessionId: matchedSession.id });
+    return NextResponse.json({ ok: true, sessionId: matched.id, amount: amountBaht });
   } catch (error) {
     console.error("TrueMoney webhook error:", error);
     return NextResponse.json(
-      { error: "Webhook processing failed" },
+      { ok: false, error: "webhook processing failed" },
       { status: 500 }
     );
   }

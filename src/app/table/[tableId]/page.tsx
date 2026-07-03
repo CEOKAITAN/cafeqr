@@ -45,6 +45,11 @@ export default function TableOrderPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [acceptingOrders, setAcceptingOrders] = useState(true);
+  const [payOpen, setPayOpen] = useState(false);
+  const [payQr, setPayQr] = useState("");
+  const [payTotal, setPayTotal] = useState(0);
+  const [payLoading, setPayLoading] = useState(false);
+  const [paid, setPaid] = useState(false);
 
   const loadSession = useCallback(async () => {
     const res = await fetch(`/api/session/${tableId}`);
@@ -95,6 +100,52 @@ export default function TableOrderPage() {
     });
   }
 
+  async function openPayment() {
+    if (!sessionId || total <= 0) return;
+    setPayLoading(true);
+    setPaid(false);
+    setError("");
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "สร้าง QR ไม่สำเร็จ");
+      setPayQr(data.qrDataUrl);
+      setPayTotal(data.total);
+      setPayOpen(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด");
+    } finally {
+      setPayLoading(false);
+    }
+  }
+
+  // ระหว่างเปิด QR — เช็คทุก 3 วิ ว่าจ่ายเงินสำเร็จหรือยัง (webhook TrueMoney ปิด session)
+  useEffect(() => {
+    if (!payOpen || !sessionId || paid) return;
+    const check = async () => {
+      const res = await fetch(`/api/checkout/status?sessionId=${sessionId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.paid) {
+        setPaid(true);
+        setPayQr("");
+      }
+    };
+    const interval = setInterval(check, 3000);
+    return () => clearInterval(interval);
+  }, [payOpen, sessionId, paid]);
+
+  function closePayment() {
+    setPayOpen(false);
+    setPaid(false);
+    setPayQr("");
+    if (paid) loadSession();
+  }
+
   async function confirmOrder() {
     if (!sessionId || cartCount === 0) return;
     setSubmitting(true);
@@ -142,6 +193,13 @@ export default function TableOrderPage() {
               ฿{total.toLocaleString()}
             </span>
           </div>
+          <button
+            onClick={openPayment}
+            disabled={payLoading}
+            className="w-full mt-3 py-2.5 rounded-full bg-[var(--accent-dark)] text-white text-sm font-semibold disabled:opacity-50"
+          >
+            {payLoading ? "กำลังสร้าง QR..." : "ชำระเงิน"}
+          </button>
         </div>
       )}
 
@@ -301,6 +359,53 @@ export default function TableOrderPage() {
             >
               {submitting ? "กำลังส่งออเดอร์..." : "ยืนยันสั่งอาหาร"}
             </button>
+          </div>
+        </div>
+      )}
+
+      {payOpen && (
+        <div className="fixed inset-0 bg-black/50 z-30 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-sm rounded-2xl p-6 text-center">
+            {paid ? (
+              <div className="py-8">
+                <div className="w-20 h-20 mx-auto rounded-full bg-green-100 flex items-center justify-center mb-4">
+                  <svg className="w-12 h-12 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-green-700 mb-1">ชำระเงินสำเร็จ!</h3>
+                <p className="text-sm text-gray-500 mb-6">ขอบคุณที่ใช้บริการ 🙏</p>
+                <button
+                  onClick={closePayment}
+                  className="w-full py-3 rounded-full bg-[var(--accent)] text-white font-semibold"
+                >
+                  เสร็จสิ้น
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-bold text-lg">สแกนเพื่อชำระเงิน</h3>
+                  <button onClick={closePayment} className="text-gray-400 text-2xl leading-none">
+                    ×
+                  </button>
+                </div>
+                {payQr && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={payQr} alt="QR ชำระเงิน" className="w-56 h-56 mx-auto" />
+                )}
+                <div className="mt-4 text-2xl font-bold text-[var(--accent-dark)]">
+                  ฿{payTotal.toLocaleString()}
+                </div>
+                <div className="mt-3 flex items-center justify-center gap-2 text-sm text-gray-500">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                  รอการชำระเงิน...
+                </div>
+                <p className="mt-4 text-xs text-gray-400">
+                  สแกน QR แล้วโอนตามยอด ระบบจะยืนยันให้อัตโนมัติ
+                </p>
+              </>
+            )}
           </div>
         </div>
       )}

@@ -2,13 +2,15 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-type Category = { id: number; name: string; sortOrder: number; itemCount: number };
+type Category = { id: number; name: string; icon: string; sortOrder: number; itemCount: number };
 
 export default function CategoriesContent() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [name, setName] = useState("");
+  const [icon, setIcon] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingName, setEditingName] = useState("");
+  const [editingIcon, setEditingIcon] = useState("");
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
   const load = useCallback(async () => {
@@ -26,9 +28,10 @@ export default function CategoriesContent() {
     await fetch("/api/categories", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name.trim() }),
+      body: JSON.stringify({ name: name.trim(), icon: icon.trim() || "🍽️" }),
     });
     setName("");
+    setIcon("");
     load();
   }
 
@@ -37,7 +40,7 @@ export default function CategoriesContent() {
     await fetch(`/api/categories/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: editingName.trim() }),
+      body: JSON.stringify({ name: editingName.trim(), icon: editingIcon.trim() || "🍽️" }),
     });
     setEditingId(null);
     load();
@@ -73,6 +76,13 @@ export default function CategoriesContent() {
     <div className="space-y-4">
       <div className="flex gap-2">
         <input
+          value={icon}
+          onChange={(e) => setIcon(e.target.value)}
+          placeholder="😀"
+          maxLength={2}
+          className="w-16 border border-neutral-300 rounded px-3 py-2 text-sm text-center text-lg"
+        />
+        <input
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="ชื่อหมวดหมู่ใหม่"
@@ -80,11 +90,14 @@ export default function CategoriesContent() {
         />
         <button
           onClick={add}
-          className="px-4 py-2 rounded bg-neutral-900 text-white text-sm font-semibold"
+          className="px-4 py-2 rounded bg-neutral-900 text-white text-sm font-semibold whitespace-nowrap"
         >
-          + เพิ่มหมวดหมู่
+          + เพิ่ม
         </button>
       </div>
+      <p className="text-xs text-neutral-400 -mt-2">
+        ใส่อีโมจิหน้าชื่อหมวดหมู่ (เช่น ☕ 🍜 🍰) — จะโชว์เป็นไอคอนวงกลมในหน้าลูกค้า
+      </p>
 
       {selected.size > 0 && (
         <div className="flex gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg items-center">
@@ -122,16 +135,27 @@ export default function CategoriesContent() {
                 className="w-5 h-5 cursor-pointer"
               />
               {editingId === c.id ? (
-                <input
-                  value={editingName}
-                  onChange={(e) => setEditingName(e.target.value)}
-                  className="flex-1 border border-neutral-300 rounded px-2 py-1 text-sm"
-                  autoFocus
-                />
+                <div className="flex gap-2 flex-1">
+                  <input
+                    value={editingIcon}
+                    onChange={(e) => setEditingIcon(e.target.value)}
+                    maxLength={2}
+                    className="w-14 border border-neutral-300 rounded px-2 py-1 text-sm text-center text-lg"
+                  />
+                  <input
+                    value={editingName}
+                    onChange={(e) => setEditingName(e.target.value)}
+                    className="flex-1 border border-neutral-300 rounded px-2 py-1 text-sm"
+                    autoFocus
+                  />
+                </div>
               ) : (
-                <div>
-                  <div className="font-semibold text-sm">{c.name}</div>
-                  <div className="text-xs text-neutral-400">{c.itemCount} สินค้า</div>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">{c.icon}</span>
+                  <div>
+                    <div className="font-semibold text-sm">{c.name}</div>
+                    <div className="text-xs text-neutral-400">{c.itemCount} สินค้า</div>
+                  </div>
                 </div>
               )}
             </div>
@@ -157,6 +181,7 @@ export default function CategoriesContent() {
                     onClick={() => {
                       setEditingId(c.id);
                       setEditingName(c.name);
+                      setEditingIcon(c.icon);
                     }}
                     className="text-sm px-4 py-2 rounded border border-neutral-300 font-semibold"
                   >

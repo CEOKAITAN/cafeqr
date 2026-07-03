@@ -15,6 +15,7 @@ model Settings {
   accountName             String  @default("")
   tableCount              Int     @default(0)
   acceptingOrders         Boolean @default(true)
+  bannerUrl               String  @default("")
   useTrueMoneyBox         Boolean @default(false)
   trueMoneyApiKey         String  @default("")
   trueMoneyMerchantCode   String  @default("")
@@ -24,6 +25,7 @@ model Settings {
 model Category {
   id        Int        @id @default(autoincrement())
   name      String
+  icon      String     @default("🍽️")
   sortOrder Int        @default(0)
   createdAt DateTime   @default(now())
   menuItems MenuItem[]

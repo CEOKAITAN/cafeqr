@@ -8,6 +8,8 @@ export default function SettingsContent() {
   const [accountName, setAccountName] = useState("");
   const [tableCount, setTableCount] = useState(0);
   const [acceptingOrders, setAcceptingOrders] = useState(true);
+  const [bannerUrl, setBannerUrl] = useState("");
+  const [uploadingBanner, setUploadingBanner] = useState(false);
   const [saved, setSaved] = useState(false);
   const [warning, setWarning] = useState("");
   const [clearDataOpen, setClearDataOpen] = useState(false);
@@ -29,6 +31,7 @@ export default function SettingsContent() {
         setAccountName(data.accountName);
         setTableCount(data.tableCount);
         setAcceptingOrders(data.acceptingOrders);
+        setBannerUrl(data.bannerUrl || "");
         setUseTrueMoneyBox(data.useTrueMoneyBox || false);
         setTrueMoneyApiKey(data.trueMoneyApiKey || "");
         setTrueMoneyMerchantCode(data.trueMoneyMerchantCode || "");
@@ -46,6 +49,7 @@ export default function SettingsContent() {
         accountName,
         tableCount,
         acceptingOrders,
+        bannerUrl,
         useTrueMoneyBox,
         trueMoneyApiKey,
         trueMoneyMerchantCode,
@@ -57,6 +61,24 @@ export default function SettingsContent() {
     setWarning(data.tableWarning || "");
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  }
+
+  async function uploadBanner(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingBanner(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "อัปโหลดไม่สำเร็จ");
+      setBannerUrl(data.url);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "อัปโหลดแบนเนอร์ไม่สำเร็จ");
+    } finally {
+      setUploadingBanner(false);
+    }
   }
 
   async function clearAllData() {
@@ -141,6 +163,33 @@ export default function SettingsContent() {
       </label>
 
       {warning && <p className="text-sm text-amber-600">{warning}</p>}
+
+      <div className="border-t border-neutral-200 pt-6 mt-6">
+        <h3 className="font-bold text-sm text-neutral-900 mb-3">🖼️ ป้ายโฆษณา (Banner)</h3>
+        <p className="text-xs text-neutral-500 mb-3">
+          รูปแบนเนอร์จะแสดงใต้ส่วนหัวในหน้าลูกค้า (เช่น โปรโมชัน 1 แถม 1) — แนะนำรูปแนวนอน
+        </p>
+        {bannerUrl && (
+          <div className="mb-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={bannerUrl} alt="banner" className="w-full rounded-lg border border-neutral-200" />
+            <button
+              onClick={() => setBannerUrl("")}
+              className="mt-2 text-xs text-red-600 font-semibold"
+            >
+              ลบแบนเนอร์
+            </button>
+          </div>
+        )}
+        <input
+          type="file"
+          accept="image/*"
+          onChange={uploadBanner}
+          disabled={uploadingBanner}
+          className="text-sm"
+        />
+        {uploadingBanner && <span className="ml-2 text-sm text-neutral-500">กำลังอัปโหลด...</span>}
+      </div>
 
       <div className="border-t border-neutral-200 pt-6 mt-6">
         <h3 className="font-bold text-sm text-neutral-900 mb-3">💚 TrueMoney Box</h3>

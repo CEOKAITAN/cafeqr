@@ -9,11 +9,12 @@ export async function PATCH(
 ) {
   const { id } = await params;
   const body = await req.json();
-  const { name, sortOrder } = body;
+  const { name, icon, sortOrder } = body;
   const category = await prisma.category.update({
     where: { id: Number(id) },
     data: {
       ...(name !== undefined && { name }),
+      ...(icon !== undefined && { icon }),
       ...(sortOrder !== undefined && { sortOrder }),
     },
   });

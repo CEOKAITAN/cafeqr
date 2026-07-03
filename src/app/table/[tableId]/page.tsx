@@ -38,7 +38,9 @@ export default function TableOrderPage() {
   const tableId = params.tableId as string;
 
   const [menu, setMenu] = useState<MenuItem[]>([]);
+  const [catIcons, setCatIcons] = useState<Record<string, string>>({});
   const [shopName, setShopName] = useState("");
+  const [bannerUrl, setBannerUrl] = useState("");
   const [tableName, setTableName] = useState("");
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -69,11 +71,19 @@ export default function TableOrderPage() {
     fetch("/api/menu")
       .then((r) => r.json())
       .then((data) => setMenu(data.filter((m: MenuItem) => m.available)));
+    fetch("/api/categories")
+      .then((r) => r.json())
+      .then((data: { name: string; icon: string }[]) => {
+        const map: Record<string, string> = {};
+        data.forEach((c) => (map[c.name] = c.icon));
+        setCatIcons(map);
+      });
     fetch("/api/settings")
       .then((r) => r.json())
       .then((data) => {
         setAcceptingOrders(data.acceptingOrders);
         setShopName(data.shopName || "");
+        setBannerUrl(data.bannerUrl || "");
       });
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadSession();
@@ -261,6 +271,18 @@ export default function TableOrderPage() {
       </header>
 
       <div className="max-w-6xl mx-auto">
+        {/* ป้ายโฆษณา ใต้ HERO */}
+        {bannerUrl && (
+          <div className="px-4 mt-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={bannerUrl}
+              alt="โปรโมชัน"
+              className="w-full rounded-2xl object-cover shadow-sm"
+            />
+          </div>
+        )}
+
         {!acceptingOrders && (
           <div className="mx-4 mt-4 rounded-xl bg-red-50 border border-red-200 p-4 text-center text-red-700 font-semibold text-sm">
             ขออภัย ร้านปิดรับออเดอร์ชั่วคราว
@@ -331,43 +353,49 @@ export default function TableOrderPage() {
           </section>
         )}
 
-        {/* หมวดหมู่ */}
+        {/* หมวดหมู่ — วงกลม + อีโมจิ */}
         {categories.length > 0 && (
           <section className="mt-6 px-4">
-            <h2 className="text-lg md:text-xl font-bold mb-3">เลือกหมวดหมู่</h2>
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              <button
-                onClick={() => setSelectedCategory(null)}
-                className={`shrink-0 px-4 py-2 rounded-full text-sm font-semibold border transition-colors ${
-                  selectedCategory === null
-                    ? "bg-[var(--accent)] text-white border-[var(--accent)]"
-                    : "bg-white text-gray-600 border-orange-200"
-                }`}
-              >
-                ทั้งหมด
-              </button>
-              {categories.map((cat) => (
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg md:text-xl font-bold">เลือกหมวดหมู่</h2>
+              {selectedCategory && (
                 <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`shrink-0 px-4 py-2 rounded-full text-sm font-semibold border transition-colors ${
-                    selectedCategory === cat
-                      ? "bg-[var(--accent)] text-white border-[var(--accent)]"
-                      : "bg-white text-gray-600 border-orange-200"
-                  }`}
+                  onClick={() => setSelectedCategory(null)}
+                  className="text-sm text-[var(--accent-dark)] font-semibold"
                 >
-                  {cat}
+                  ✕ แสดงทั้งหมด
                 </button>
-              ))}
+              )}
             </div>
-            {selectedCategory && (
-              <button
-                onClick={() => setSelectedCategory(null)}
-                className="mt-2 text-sm text-[var(--accent-dark)] font-semibold underline"
-              >
-                ✕ ยกเลิกตัวกรอง (แสดงทั้งหมด)
-              </button>
-            )}
+            <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-8 gap-3">
+              {categories.map((cat) => {
+                const active = selectedCategory === cat;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(active ? null : cat)}
+                    className="flex flex-col items-center gap-1.5 group"
+                  >
+                    <div
+                      className={`w-14 h-14 md:w-16 md:h-16 rounded-full flex items-center justify-center text-2xl md:text-3xl transition-all ${
+                        active
+                          ? "bg-[var(--accent)] ring-2 ring-[var(--accent)] ring-offset-2 scale-105"
+                          : "bg-white shadow-sm group-hover:shadow-md"
+                      }`}
+                    >
+                      {catIcons[cat] || "🍽️"}
+                    </div>
+                    <span
+                      className={`text-xs md:text-sm text-center line-clamp-1 ${
+                        active ? "font-bold text-[var(--accent-dark)]" : "text-gray-600"
+                      }`}
+                    >
+                      {cat}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </section>
         )}
 

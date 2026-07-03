@@ -12,6 +12,7 @@ export async function GET() {
     categories.map((c: any) => ({
       id: c.id,
       name: c.name,
+      icon: c.icon,
       sortOrder: c.sortOrder,
       itemCount: c._count.menuItems,
     }))
@@ -20,13 +21,13 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { name } = body;
+  const { name, icon } = body;
   if (!name || !name.trim()) {
     return NextResponse.json({ error: "invalid input" }, { status: 400 });
   }
   const count = await prisma.category.count();
   const category = await prisma.category.create({
-    data: { name: name.trim(), sortOrder: count },
+    data: { name: name.trim(), icon: icon || "🍽️", sortOrder: count },
   });
   return NextResponse.json(category, { status: 201 });
 }

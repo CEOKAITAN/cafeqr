@@ -21,7 +21,18 @@ export async function GET() {
 
 export async function PUT(req: NextRequest) {
   const body = await req.json();
-  const { shopName, promptPayId, accountName, acceptingOrders, tableCount } = body;
+  const {
+    shopName,
+    promptPayId,
+    accountName,
+    acceptingOrders,
+    tableCount,
+    bannerUrl,
+    useTrueMoneyBox,
+    trueMoneyApiKey,
+    trueMoneyMerchantCode,
+    trueMoneySecret,
+  } = body;
 
   await prisma.settings.upsert({
     where: { id: 1 },
@@ -30,6 +41,11 @@ export async function PUT(req: NextRequest) {
       ...(promptPayId !== undefined && { promptPayId }),
       ...(accountName !== undefined && { accountName }),
       ...(acceptingOrders !== undefined && { acceptingOrders }),
+      ...(bannerUrl !== undefined && { bannerUrl }),
+      ...(useTrueMoneyBox !== undefined && { useTrueMoneyBox }),
+      ...(trueMoneyApiKey !== undefined && { trueMoneyApiKey }),
+      ...(trueMoneyMerchantCode !== undefined && { trueMoneyMerchantCode }),
+      ...(trueMoneySecret !== undefined && { trueMoneySecret }),
     },
     create: {
       id: 1,
@@ -37,6 +53,11 @@ export async function PUT(req: NextRequest) {
       promptPayId: promptPayId || "",
       accountName: accountName || "",
       acceptingOrders: acceptingOrders ?? true,
+      bannerUrl: bannerUrl || "",
+      useTrueMoneyBox: useTrueMoneyBox ?? false,
+      trueMoneyApiKey: trueMoneyApiKey || "",
+      trueMoneyMerchantCode: trueMoneyMerchantCode || "",
+      trueMoneySecret: trueMoneySecret || "",
     },
   });
 

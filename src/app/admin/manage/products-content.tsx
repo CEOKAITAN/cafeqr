@@ -168,15 +168,24 @@ export default function ProductsContent() {
     processFile(file);
   }
 
-  function processFile(file: File) {
+  async function processFile(file: File) {
+    if (file.size > 5 * 1024 * 1024) {
+      alert("ไฟล์ใหญ่เกิน 5MB");
+      return;
+    }
     setUploading(true);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      setForm({ ...form, imageUrl: base64 });
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "อัปโหลดไม่สำเร็จ");
+      setForm((f) => ({ ...f, imageUrl: data.url }));
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "อัปโหลดรูปไม่สำเร็จ");
+    } finally {
       setUploading(false);
-    };
-    reader.readAsDataURL(file);
+    }
   }
 
   function handleDragOver(e: React.DragEvent<HTMLDivElement>) {

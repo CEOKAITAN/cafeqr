@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 type MenuItem = {
   id: number;
   name: string;
+  description: string | null;
   price: number;
   categoryId: number | null;
   categoryName: string;
@@ -15,7 +16,7 @@ type MenuItem = {
 
 type Category = { id: number; name: string };
 
-const emptyForm = { name: "", price: "", categoryId: "", imageUrl: "", featured: false };
+const emptyForm = { name: "", description: "", price: "", categoryId: "", imageUrl: "", featured: false };
 
 export default function ProductsContent() {
   const [items, setItems] = useState<MenuItem[]>([]);
@@ -47,6 +48,7 @@ export default function ProductsContent() {
     setEditingId(item.id);
     setForm({
       name: item.name,
+      description: item.description || "",
       price: String(item.price),
       categoryId: item.categoryId ? String(item.categoryId) : "",
       imageUrl: item.imageUrl || "",
@@ -63,6 +65,7 @@ export default function ProductsContent() {
     if (!form.name.trim() || !form.price) return;
     const payload = {
       name: form.name.trim(),
+      description: form.description.trim() || null,
       price: Number(form.price),
       categoryId: form.categoryId ? Number(form.categoryId) : null,
       imageUrl: form.imageUrl.trim() || null,
@@ -239,6 +242,12 @@ export default function ProductsContent() {
             placeholder="ชื่อสินค้า"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
+            className="border border-neutral-300 rounded px-3 py-2 text-sm col-span-2"
+          />
+          <input
+            placeholder="คำอธิบายสั้นๆ (เช่น เครื่องดื่มเย็นสดชื่น)"
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
             className="border border-neutral-300 rounded px-3 py-2 text-sm col-span-2"
           />
           <input

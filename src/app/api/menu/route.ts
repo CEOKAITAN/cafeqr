@@ -12,6 +12,7 @@ export async function GET() {
     items.map((it) => ({
       id: it.id,
       name: it.name,
+      description: it.description,
       price: it.price,
       categoryId: it.categoryId,
       categoryName: it.category?.name ?? "ไม่มีหมวดหมู่",
@@ -24,13 +25,14 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { name, price, categoryId, imageUrl, featured } = body;
+  const { name, description, price, categoryId, imageUrl, featured } = body;
   if (!name || typeof price !== "number") {
     return NextResponse.json({ error: "invalid input" }, { status: 400 });
   }
   const item = await prisma.menuItem.create({
     data: {
       name,
+      description: description || null,
       price,
       categoryId: categoryId ?? null,
       imageUrl: imageUrl || null,

@@ -8,6 +8,7 @@ import { useParams } from "next/navigation";
 type MenuItem = {
   id: number;
   name: string;
+  description: string | null;
   price: number;
   categoryName: string;
   imageUrl: string | null;
@@ -194,8 +195,8 @@ export default function TableOrderPage() {
   function MenuCard({ m }: { m: MenuItem }) {
     const qty = cart[m.id] || 0;
     return (
-      <div className="bg-white rounded-2xl border border-orange-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col">
-        <div className="aspect-square bg-orange-50 flex items-center justify-center overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-shadow p-4 flex flex-col items-center text-center">
+        <div className="w-28 h-28 md:w-32 md:h-32 rounded-full bg-orange-50 flex items-center justify-center overflow-hidden shadow-inner">
           {m.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={m.imageUrl} alt={m.name} className="w-full h-full object-cover" />
@@ -203,37 +204,37 @@ export default function TableOrderPage() {
             <span className="text-4xl">🍽️</span>
           )}
         </div>
-        <div className="p-3 flex flex-col flex-1">
-          <div className="font-medium text-sm md:text-base flex-1 line-clamp-2">{m.name}</div>
-          <div className="text-[var(--accent-dark)] font-bold mt-1 md:text-lg">
-            ฿{m.price.toLocaleString()}
+        <div className="font-bold text-sm md:text-base mt-3 line-clamp-1">{m.name}</div>
+        {m.description && (
+          <div className="text-xs text-gray-400 mt-1 line-clamp-2 min-h-[2rem]">
+            {m.description}
           </div>
-          <div className="mt-2">
-            {qty ? (
-              <div className="flex items-center justify-between gap-2">
-                <button
-                  onClick={() => removeFromCart(m.id)}
-                  className="w-8 h-8 rounded-full bg-orange-100 text-[var(--accent-dark)] font-bold text-lg"
-                >
-                  −
-                </button>
-                <span className="text-sm font-semibold">{qty}</span>
-                <button
-                  onClick={() => addToCart(m.id)}
-                  className="w-8 h-8 rounded-full bg-[var(--accent)] text-white font-bold text-lg"
-                >
-                  +
-                </button>
-              </div>
-            ) : (
+        )}
+        <div className="w-full mt-3">
+          {qty ? (
+            <div className="flex items-center justify-between gap-2 bg-orange-50 rounded-full p-1">
+              <button
+                onClick={() => removeFromCart(m.id)}
+                className="w-9 h-9 rounded-full bg-white text-[var(--accent-dark)] font-bold text-lg shadow-sm"
+              >
+                −
+              </button>
+              <span className="text-sm font-bold">{qty}</span>
               <button
                 onClick={() => addToCart(m.id)}
-                className="w-full py-2 rounded-full bg-[var(--accent)] text-white text-sm font-semibold hover:opacity-90 transition-opacity"
+                className="w-9 h-9 rounded-full bg-[var(--accent)] text-white font-bold text-lg shadow-sm"
               >
-                + เพิ่ม
+                +
               </button>
-            )}
-          </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => addToCart(m.id)}
+              className="w-full py-2.5 rounded-full bg-[var(--accent)] text-white text-sm font-bold hover:opacity-90 transition-opacity shadow-sm"
+            >
+              ฿{m.price.toLocaleString()}
+            </button>
+          )}
         </div>
       </div>
     );

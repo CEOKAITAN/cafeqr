@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 function itemsTotal(items: { price: number; quantity: number }[]) {
   return items.reduce((sum, it) => sum + it.price * it.quantity, 0);
 }

@@ -16,6 +16,7 @@ model Settings {
   tableCount              Int     @default(0)
   acceptingOrders         Boolean @default(true)
   bannerUrl               String  @default("")
+  promoText               String  @default("")
   useTrueMoneyBox         Boolean @default(false)
   trueMoneyApiKey         String  @default("")
   trueMoneyMerchantCode   String  @default("")
@@ -35,6 +36,7 @@ model MenuItem {
   id          Int         @id @default(autoincrement())
   name        String
   description String?
+  badge       String?
   price       Int
   category   Category?   @relation(fields: [categoryId], references: [id])
   categoryId Int?

@@ -9,11 +9,18 @@ type MenuItem = {
   id: number;
   name: string;
   description: string | null;
+  badge: string | null;
   price: number;
   categoryName: string;
   imageUrl: string | null;
   available: boolean;
   featured: boolean;
+};
+
+const BADGE_STYLE: Record<string, { label: string; className: string }> = {
+  HOT: { label: "🔥 ขายดี", className: "bg-red-500 text-white" },
+  NEW: { label: "✨ ใหม่", className: "bg-blue-500 text-white" },
+  PROMO: { label: "🏷️ โปร", className: "bg-green-600 text-white" },
 };
 
 type OrderItem = { name: string; price: number; quantity: number };
@@ -41,6 +48,7 @@ export default function TableOrderPage() {
   const [catIcons, setCatIcons] = useState<Record<string, string>>({});
   const [shopName, setShopName] = useState("");
   const [bannerUrl, setBannerUrl] = useState("");
+  const [promoText, setPromoText] = useState("");
   const [tableName, setTableName] = useState("");
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -84,6 +92,7 @@ export default function TableOrderPage() {
         setAcceptingOrders(data.acceptingOrders);
         setShopName(data.shopName || "");
         setBannerUrl(data.bannerUrl || "");
+        setPromoText(data.promoText || "");
       });
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadSession();
@@ -206,13 +215,22 @@ export default function TableOrderPage() {
     const qty = cart[m.id] || 0;
     return (
       <div className="bg-white rounded-2xl shadow-sm hover:shadow-lg transition-shadow p-4 flex flex-col items-center text-center">
-        <div className="w-28 h-28 md:w-32 md:h-32 rounded-full bg-orange-50 flex items-center justify-center overflow-hidden shadow-inner">
-          {m.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={m.imageUrl} alt={m.name} className="w-full h-full object-cover" />
-          ) : (
-            <span className="text-4xl">🍽️</span>
+        <div className="relative">
+          {m.badge && BADGE_STYLE[m.badge] && (
+            <span
+              className={`absolute -top-1 -right-1 z-10 text-[10px] font-bold px-2 py-0.5 rounded-full shadow ${BADGE_STYLE[m.badge].className}`}
+            >
+              {BADGE_STYLE[m.badge].label}
+            </span>
           )}
+          <div className="w-28 h-28 md:w-32 md:h-32 rounded-full bg-orange-50 flex items-center justify-center overflow-hidden shadow-inner">
+            {m.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={m.imageUrl} alt={m.name} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-4xl">🍽️</span>
+            )}
+          </div>
         </div>
         <div className="font-bold text-sm md:text-base mt-3 line-clamp-1">{m.name}</div>
         {m.description && (
@@ -252,6 +270,48 @@ export default function TableOrderPage() {
 
   return (
     <div className="min-h-screen bg-orange-50/30 pb-28">
+      {/* Header ติดบน */}
+      <div className="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-orange-100 shadow-sm">
+        <div className="max-w-6xl mx-auto px-4 py-2.5 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-8 h-8 rounded-full bg-[var(--accent)] text-white flex items-center justify-center font-bold shrink-0">
+              {(shopName || "ร")[0]}
+            </div>
+            <span className="font-bold text-sm md:text-base truncate">{shopName || "ร้านของเรา"}</span>
+            <span className="shrink-0 text-xs bg-orange-100 text-[var(--accent-dark)] font-semibold px-2 py-0.5 rounded-full">
+              โต๊ะ {tableName || "..."}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {orders.length > 0 && (
+              <button
+                onClick={() =>
+                  document.getElementById("my-orders")?.scrollIntoView({ behavior: "smooth" })
+                }
+                className="text-xs md:text-sm font-semibold text-gray-600 px-2 py-1 rounded-lg hover:bg-orange-50"
+              >
+                📋 ออเดอร์ของฉัน
+              </button>
+            )}
+            {cartCount > 0 && (
+              <button
+                onClick={() => setCartOpen(true)}
+                className="relative text-[var(--accent-dark)]"
+                aria-label="ตะกร้า"
+              >
+                <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
+                  <path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6" />
+                </svg>
+                <span className="absolute -top-1.5 -right-1.5 bg-[var(--accent)] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                  {cartCount}
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* HERO */}
       <header className="relative bg-gradient-to-br from-[var(--accent)] to-[var(--accent-dark)] text-white overflow-hidden">
         <div className="absolute inset-0 opacity-10 pointer-events-none">
@@ -261,11 +321,18 @@ export default function TableOrderPage() {
         <div className="relative max-w-6xl mx-auto px-4 md:px-6 py-8 md:py-12">
           <div className="text-xs md:text-sm opacity-90 mb-1">ยินดีต้อนรับสู่</div>
           <h1 className="text-2xl md:text-4xl font-extrabold">{shopName || "ร้านของเรา"}</h1>
-          <div className="mt-3 inline-flex items-center gap-2 bg-white/20 backdrop-blur rounded-full px-4 py-1.5 text-sm md:text-base font-semibold">
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <rect x="4" y="5" width="16" height="12" rx="1" /><path d="M6 17v2M18 17v2" />
-            </svg>
-            โต๊ะ {tableName || "..."}
+          {promoText && (
+            <div className="mt-3 inline-block bg-yellow-300 text-yellow-900 rounded-full px-4 py-1.5 text-sm md:text-base font-bold shadow">
+              🎉 {promoText}
+            </div>
+          )}
+          <div className="mt-3 flex items-center gap-2 text-sm md:text-base font-semibold">
+            <span className="inline-flex items-center gap-2 bg-white/20 backdrop-blur rounded-full px-4 py-1.5">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="4" y="5" width="16" height="12" rx="1" /><path d="M6 17v2M18 17v2" />
+              </svg>
+              โต๊ะ {tableName || "..."}
+            </span>
           </div>
         </div>
       </header>
@@ -308,7 +375,7 @@ export default function TableOrderPage() {
         )}
 
         {orders.length > 0 && (
-          <div className="mx-4 mt-4 space-y-2">
+          <div id="my-orders" className="mx-4 mt-4 space-y-2 scroll-mt-16">
             <div className="text-sm font-semibold text-gray-600">ออเดอร์ของคุณ</div>
             {orders.map((o) => (
               <div key={o.id} className="rounded-xl bg-white border border-orange-100 p-3">
@@ -510,10 +577,29 @@ export default function TableOrderPage() {
             ) : (
               <>
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-bold text-lg">สแกนเพื่อชำระเงิน</h3>
+                  <h3 className="font-bold text-lg">เช็คบิล & ชำระเงิน</h3>
                   <button onClick={closePayment} className="text-gray-400 text-2xl leading-none">
                     ×
                   </button>
+                </div>
+                {/* สรุปรายการ */}
+                <div className="text-left bg-orange-50/60 rounded-xl p-3 mb-4 max-h-40 overflow-y-auto">
+                  {orders
+                    .flatMap((o) => o.items)
+                    .map((it, idx) => (
+                      <div key={idx} className="flex justify-between text-sm py-0.5">
+                        <span className="text-gray-600">
+                          {it.name} x{it.quantity}
+                        </span>
+                        <span className="font-medium">
+                          ฿{(it.price * it.quantity).toLocaleString()}
+                        </span>
+                      </div>
+                    ))}
+                  <div className="flex justify-between border-t border-orange-200 mt-2 pt-2 font-bold">
+                    <span>รวมทั้งหมด</span>
+                    <span className="text-[var(--accent-dark)]">฿{payTotal.toLocaleString()}</span>
+                  </div>
                 </div>
                 {payQr && (
                   // eslint-disable-next-line @next/next/no-img-element

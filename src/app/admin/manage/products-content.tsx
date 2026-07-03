@@ -6,6 +6,7 @@ type MenuItem = {
   id: number;
   name: string;
   description: string | null;
+  badge: string | null;
   price: number;
   categoryId: number | null;
   categoryName: string;
@@ -16,7 +17,7 @@ type MenuItem = {
 
 type Category = { id: number; name: string };
 
-const emptyForm = { name: "", description: "", price: "", categoryId: "", imageUrl: "", featured: false };
+const emptyForm = { name: "", description: "", badge: "", price: "", categoryId: "", imageUrl: "", featured: false };
 
 export default function ProductsContent() {
   const [items, setItems] = useState<MenuItem[]>([]);
@@ -49,6 +50,7 @@ export default function ProductsContent() {
     setForm({
       name: item.name,
       description: item.description || "",
+      badge: item.badge || "",
       price: String(item.price),
       categoryId: item.categoryId ? String(item.categoryId) : "",
       imageUrl: item.imageUrl || "",
@@ -66,6 +68,7 @@ export default function ProductsContent() {
     const payload = {
       name: form.name.trim(),
       description: form.description.trim() || null,
+      badge: form.badge || null,
       price: Number(form.price),
       categoryId: form.categoryId ? Number(form.categoryId) : null,
       imageUrl: form.imageUrl.trim() || null,
@@ -268,6 +271,16 @@ export default function ProductsContent() {
                 {c.name}
               </option>
             ))}
+          </select>
+          <select
+            value={form.badge}
+            onChange={(e) => setForm({ ...form, badge: e.target.value })}
+            className="border border-neutral-300 rounded px-3 py-2 text-sm col-span-2"
+          >
+            <option value="">ไม่มีป้าย</option>
+            <option value="HOT">🔥 ขายดี</option>
+            <option value="NEW">✨ ใหม่</option>
+            <option value="PROMO">🏷️ โปรโมชัน</option>
           </select>
           <div className="col-span-2">
             <label className="block text-xs font-semibold mb-2">รูปภาพ</label>

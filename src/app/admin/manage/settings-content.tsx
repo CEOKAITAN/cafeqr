@@ -8,6 +8,7 @@ export default function SettingsContent() {
   const [accountName, setAccountName] = useState("");
   const [tableCount, setTableCount] = useState(0);
   const [acceptingOrders, setAcceptingOrders] = useState(true);
+  const [promoText, setPromoText] = useState("");
   const [bannerUrl, setBannerUrl] = useState("");
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -31,6 +32,7 @@ export default function SettingsContent() {
         setAccountName(data.accountName);
         setTableCount(data.tableCount);
         setAcceptingOrders(data.acceptingOrders);
+        setPromoText(data.promoText || "");
         setBannerUrl(data.bannerUrl || "");
         setUseTrueMoneyBox(data.useTrueMoneyBox || false);
         setTrueMoneyApiKey(data.trueMoneyApiKey || "");
@@ -49,6 +51,7 @@ export default function SettingsContent() {
         accountName,
         tableCount,
         acceptingOrders,
+        promoText,
         bannerUrl,
         useTrueMoneyBox,
         trueMoneyApiKey,
@@ -163,6 +166,16 @@ export default function SettingsContent() {
       </label>
 
       {warning && <p className="text-sm text-amber-600">{warning}</p>}
+
+      <div>
+        <label className="block text-sm font-semibold mb-1">ข้อความโปรวันนี้ (โชว์ใน Hero)</label>
+        <input
+          value={promoText}
+          onChange={(e) => setPromoText(e.target.value)}
+          placeholder="เช่น ซื้อครบ 100 ส่งฟรี! หรือ เมนูใหม่มาแล้ว"
+          className="w-full border border-neutral-300 rounded px-3 py-2 text-sm"
+        />
+      </div>
 
       <div className="border-t border-neutral-200 pt-6 mt-6">
         <h3 className="font-bold text-sm text-neutral-900 mb-3">🖼️ ป้ายโฆษณา (Banner)</h3>

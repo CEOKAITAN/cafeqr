@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import "./admin-theme.css";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "หน้าแรก" },
@@ -44,57 +45,81 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="min-h-screen bg-orange-50/40">
-      <header className="bg-white border-b border-orange-100 sticky top-0 z-20 shadow-sm">
-        <div className="px-4 sm:px-6 py-3">
-          <div className="flex items-center justify-between gap-4 mb-0">
-            <div className="flex items-center gap-3">
-              <span className="font-extrabold text-2xl tracking-tight text-[var(--accent-dark)]">
-                {shopName}
+    <div className="adm" style={{ minHeight: "100vh", background: "var(--ground)" }}>
+      <header
+        style={{
+          background: "rgba(251,246,241,0.9)",
+          backdropFilter: "blur(12px)",
+          borderBottom: "1px solid var(--line-soft)",
+          position: "sticky",
+          top: 0,
+          zIndex: 20,
+        }}
+      >
+        <div className="px-4 sm:px-6 py-3 max-w-7xl mx-auto w-full">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <span
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  background: "linear-gradient(145deg,var(--accent),var(--accent-deep))",
+                  color: "#fff",
+                  fontWeight: 800,
+                  fontSize: 18,
+                  display: "grid",
+                  placeItems: "center",
+                  flexShrink: 0,
+                  boxShadow: "0 4px 12px rgba(184,74,22,0.35)",
+                }}
+              >
+                {(shopName || "ร")[0]}
               </span>
-              <span className="text-sm text-neutral-400 font-medium hidden sm:inline">
-                หลังบ้าน
-              </span>
+              <div className="min-w-0">
+                <div style={{ fontWeight: 800, fontSize: 17, letterSpacing: "-0.01em" }} className="truncate">
+                  {shopName}
+                </div>
+                <div style={{ fontSize: 11, color: "var(--ink-soft)" }}>ระบบหลังบ้าน</div>
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
               <button
                 onClick={toggleAcceptingOrders}
-                className={`relative inline-flex h-8 w-16 items-center rounded-full transition-colors ${
-                  acceptingOrders ? "bg-green-500" : "bg-red-400"
-                }`}
+                className="switch"
+                style={{ background: acceptingOrders ? "#34c77b" : "#e88" }}
                 title={acceptingOrders ? "ร้านเปิด - กดปิด" : "ร้านปิด - กดเปิด"}
               >
-                <span
-                  className={`inline-block h-7 w-7 transform rounded-full bg-white transition-transform shadow-md ${
-                    acceptingOrders ? "translate-x-8" : "translate-x-0.5"
-                  }`}
-                />
+                <span className="knob" style={{ transform: acceptingOrders ? "translateX(24px)" : "translateX(0)" }} />
               </button>
-              <span className="text-sm font-medium text-neutral-700 w-16">
+              <span style={{ fontSize: 13, fontWeight: 700, color: acceptingOrders ? "var(--green)" : "#d6453c", width: 52 }}>
                 {acceptingOrders ? "เปิดร้าน" : "ปิดร้าน"}
               </span>
+              <button
+                className="sm:hidden icon-btn-sm"
+                onClick={() => setMobileOpen((v) => !v)}
+                aria-label="เมนู"
+              >
+                ☰
+              </button>
             </div>
           </div>
 
-          <button
-            className="sm:hidden w-9 h-9 flex items-center justify-center border border-neutral-200 rounded mx-auto mt-2"
-            onClick={() => setMobileOpen((v) => !v)}
-          >
-            <span className="sr-only">เมนู</span>
-            ☰
-          </button>
-
-          <nav className="hidden sm:flex items-center justify-center h-full mt-2">
+          <nav className="hidden sm:flex items-center gap-1 mt-3">
             {NAV_ITEMS.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`px-4 py-2 text-sm font-bold flex items-center border-b-2 transition-colors ${
-                  isActive(item.href)
-                    ? "border-[var(--accent)] text-[var(--accent-dark)]"
-                    : "border-transparent text-neutral-500 hover:text-[var(--accent-dark)]"
-                }`}
+                style={{
+                  padding: "8px 16px",
+                  fontSize: 14,
+                  fontWeight: 800,
+                  borderBottom: "2px solid",
+                  borderColor: isActive(item.href) ? "var(--accent)" : "transparent",
+                  color: isActive(item.href) ? "var(--accent-deep)" : "var(--ink-soft)",
+                  transition: "color .15s",
+                }}
               >
                 {item.label}
               </Link>
@@ -103,15 +128,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         {mobileOpen && (
-          <nav className="sm:hidden border-t border-neutral-200 bg-white">
+          <nav className="sm:hidden" style={{ borderTop: "1px solid var(--line-soft)", background: "var(--card)" }}>
             {NAV_ITEMS.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
-                className={`block px-4 py-3 text-sm font-bold border-b border-neutral-100 ${
-                  isActive(item.href) ? "text-[var(--accent-dark)] bg-orange-50" : "text-neutral-500"
-                }`}
+                style={{
+                  display: "block",
+                  padding: "12px 18px",
+                  fontSize: 14,
+                  fontWeight: 800,
+                  borderBottom: "1px solid var(--line-soft)",
+                  color: isActive(item.href) ? "var(--accent-deep)" : "var(--ink-soft)",
+                  background: isActive(item.href) ? "var(--accent-wash)" : "transparent",
+                }}
               >
                 {item.label}
               </Link>
@@ -120,7 +151,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         )}
       </header>
 
-      <main className="px-3 sm:px-4 md:px-6 py-3 md:py-4 max-w-7xl mx-auto w-full">{children}</main>
+      <main className="px-3 sm:px-4 md:px-6 py-4 md:py-6 max-w-7xl mx-auto w-full">{children}</main>
     </div>
   );
 }

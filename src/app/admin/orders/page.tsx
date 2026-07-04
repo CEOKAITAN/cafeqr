@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Modal, StatusBadge } from "@/components/admin/ui";
 
 type TableRow = {
   id: number;
@@ -28,6 +27,22 @@ function baht(n: number) {
   return `฿${n.toLocaleString()}`;
 }
 
+// รวมสถานะโต๊ะให้ตรงดีไซน์: ว่าง / ออเดอร์เข้า (ฟ้า) / รับแล้ว (เขียว)
+function tableView(status: TableRow["status"]) {
+  if (status === "EMPTY")
+    return { label: "โต๊ะว่าง", color: "#7A6A5E", dot: "#C9BCAF", bg: "#fff", border: "var(--line)" };
+  if (status === "NEW")
+    return { label: "ออเดอร์เข้า", color: "#2158C9", dot: "#3B82F6", bg: "#EAF1FF", border: "#9DBEF5" };
+  return { label: "รับออเดอร์แล้ว", color: "#1E7A44", dot: "#34C77B", bg: "#E7F6EC", border: "#8BD6A9" };
+}
+
+// สถานะออเดอร์: PENDING = ออเดอร์เข้า (ฟ้า) ; COOKING/DONE = รับแล้ว (เขียว) ; CANCELLED
+function orderView(status: string) {
+  if (status === "PENDING") return { label: "ออเดอร์เข้า", bg: "#E1ECFF", color: "#2158C9" };
+  if (status === "CANCELLED") return { label: "ยกเลิก", bg: "#FBE0DE", color: "#C5352C" };
+  return { label: "รับออเดอร์แล้ว", bg: "#E1F3E7", color: "#1E7A44" };
+}
+
 const STATUS_ORDER: TableRow["status"][] = ["NEW", "COOKING", "AWAITING_PAYMENT", "OCCUPIED", "EMPTY"];
 
 export default function OrdersPage() {
@@ -47,9 +62,7 @@ export default function OrdersPage() {
     const res = await fetch("/api/tables");
     if (res.ok) {
       const data: TableRow[] = await res.json();
-      data.sort(
-        (a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status)
-      );
+      data.sort((a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status));
       setTables(data);
     }
   }, []);
@@ -64,20 +77,13 @@ export default function OrdersPage() {
       const res = await fetch("/api/tables");
       if (res.ok) {
         const data: TableRow[] = await res.json();
-        data.sort(
-          (a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status)
-        );
+        data.sort((a, b) => STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status));
         setTables(data);
-        if (data.length > 0 && !selectedId) {
-          setSelectedId(data[0].id);
-        }
+        if (data.length > 0 && !selectedId) setSelectedId(data[0].id);
       }
     };
-
     initTables();
-    fetch("/api/menu")
-      .then((r) => r.json())
-      .then(setMenu);
+    fetch("/api/menu").then((r) => r.json()).then(setMenu);
     const interval = setInterval(loadTables, 3000);
     return () => clearInterval(interval);
   }, [loadTables, selectedId]);
@@ -141,61 +147,43 @@ export default function OrdersPage() {
   const selectedTable = tables.find((t) => t.id === selectedId) || null;
 
   return (
-    <div className="grid lg:grid-cols-[1fr_1.1fr] gap-4">
+    <div className="grid lg:grid-cols-[1fr_1.1fr] gap-5">
+      {/* โต๊ะทั้งหมด */}
       <div>
-        <h1 className="text-xl font-extrabold text-neutral-900 mb-3">โต๊ะทั้งหมด</h1>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <h1 className="sec-title" style={{ fontSize: 20, marginBottom: 14 }}>โต๊ะทั้งหมด</h1>
+        <div className="table-grid">
           {tables.map((t) => {
-            let bgColor = "bg-white";
-            if (["NEW", "AWAITING_PAYMENT"].includes(t.status)) {
-              bgColor = "bg-yellow-100";
-            } else if (["COOKING", "OCCUPIED"].includes(t.status)) {
-              bgColor = "bg-green-100";
-            }
-
+            const v = tableView(t.status);
+            const selected = selectedId === t.id;
             return (
-              <div
+              <button
                 key={t.id}
-                className={`text-left rounded-lg border p-3 transition-colors ${bgColor} ${
-                  selectedId === t.id
-                    ? "border-neutral-900 ring-2 ring-neutral-900"
-                    : "border-neutral-300 hover:border-neutral-400"
-                }`}
+                onClick={() => setSelectedId(t.id)}
+                className="tcard"
+                style={{ background: v.bg, borderColor: selected ? "var(--ink)" : v.border }}
               >
-                <button
-                  onClick={() => setSelectedId(t.id)}
-                  className="w-full text-left"
-                >
-                  <div className="text-xl font-extrabold text-neutral-900 mb-2">{t.name}</div>
-                  <div className="text-sm text-neutral-600 mb-2">
-                    มี {t.orderCount} ออเดอร์
-                  </div>
-                  <div className="text-sm font-medium text-neutral-700">
-                    สถานะ: {t.orderCount > 0 ? "มีลูกค้า" : "โต๊ะว่าง"}
-                  </div>
-                </button>
-              </div>
+                <div className="tname">{t.name}</div>
+                <div className="trow">
+                  <span className="dot" style={{ background: v.dot }} />
+                  <span style={{ color: v.color, fontWeight: 700 }}>{v.label}</span>
+                </div>
+                <div className="tcount">มี {t.orderCount} ออเดอร์</div>
+              </button>
             );
           })}
-          <button
-            onClick={() => setAddTableOpen(true)}
-            className="border-2 border-dashed border-neutral-300 rounded-lg p-3 transition-colors hover:border-neutral-400 hover:bg-neutral-50 flex items-center justify-center"
-          >
-            <div className="text-center">
-              <div className="w-8 h-8 mb-2 mx-auto text-neutral-400">
-                <svg fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path d="M12 4v16m8-8H4" />
-                </svg>
-              </div>
-              <div className="text-sm font-semibold text-neutral-600">เพิ่มโต๊ะใหม่</div>
+          <button onClick={() => setAddTableOpen(true)} className="tadd">
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 22, lineHeight: 1 }}>＋</div>
+              <div style={{ marginTop: 4 }}>เพิ่มโต๊ะใหม่</div>
             </div>
           </button>
         </div>
       </div>
 
+      {/* รายละเอียดโต๊ะ */}
       <div>
         <div className="flex items-center justify-between mb-3 gap-2">
-          <h2 className="text-xl font-extrabold text-neutral-900">
+          <h2 className="sec-title" style={{ fontSize: 20, margin: 0 }}>
             {selectedTable ? `รายละเอียด ${selectedTable.name}` : "เลือกโต๊ะเพื่อดูรายละเอียด"}
           </h2>
           {selectedTable && (
@@ -204,7 +192,8 @@ export default function OrdersPage() {
                 setEditTableOpen(selectedTable);
                 setEditTableNameValue(selectedTable.name);
               }}
-              className="px-3 py-1.5 text-sm rounded border border-neutral-300 text-neutral-600 hover:bg-neutral-50 font-semibold whitespace-nowrap"
+              className="btn btn-ghost"
+              style={{ padding: "7px 14px", fontSize: 13 }}
             >
               แก้ไขชื่อ
             </button>
@@ -212,127 +201,88 @@ export default function OrdersPage() {
         </div>
 
         {selectedTable && detail && (() => {
-          const hasPendingOrders =
-            detail.session?.orders.some((o) => o.status === "PENDING") ?? false;
+          const hasPendingOrders = detail.session?.orders.some((o) => o.status === "PENDING") ?? false;
           const canCheckout = detail.total > 0 && !hasPendingOrders;
-          const canClear = detail.session && detail.session.orders.length > 0;
+          const activeOrders = detail.session?.orders.filter((o) => o.status !== "CANCELLED") ?? [];
+          const canClear = activeOrders.length > 0;
 
           return (
-            <div className="bg-white border border-neutral-200 rounded-lg p-4 space-y-4">
+            <div className="odetail">
               <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => setQrTable(selectedTable)}
-                  className="px-4 py-3 rounded-lg border border-neutral-300 font-semibold text-neutral-700 hover:bg-neutral-50 transition"
-                >
+                <button onClick={() => setQrTable(selectedTable)} className="btn btn-ghost">
                   QR โต๊ะ
                 </button>
-                <button
-                  onClick={() => clearTable(selectedTable.id)}
-                  disabled={!canClear}
-                  className="px-4 py-3 rounded-lg border border-red-300 text-red-600 font-semibold hover:bg-red-50 transition disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  ปิดโต๊ะ / เครียร์
+                <button onClick={() => clearTable(selectedTable.id)} disabled={!canClear} className="btn btn-danger">
+                  ปิดโต๊ะ / เคลียร์
                 </button>
               </div>
 
               <button
-                onClick={() => setCheckoutTable(selectedTable)}
+                onClick={() => canCheckout && setCheckoutTable(selectedTable)}
                 disabled={!canCheckout}
                 title={hasPendingOrders ? "ต้องรับออเดอร์ทั้งหมดก่อน" : ""}
-                className="w-full px-4 py-3 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                className="btn btn-green btn-block"
+                style={{ marginTop: 12 }}
               >
                 ✓ ยืนยันชำระเงิน / เช็คบิล
               </button>
 
-            <div className="text-right text-sm text-neutral-500">
-              ยอดรวมทั้งหมด{" "}
-              <span className="text-lg font-extrabold text-neutral-900 ml-1">
-                {baht(detail.total)}
-              </span>
-            </div>
+              <div style={{ textAlign: "right", fontSize: 13, color: "var(--ink-soft)", margin: "14px 0" }}>
+                ยอดรวมทั้งหมด{" "}
+                <span style={{ fontSize: 19, fontWeight: 800, color: "var(--ink)", marginLeft: 6 }}>
+                  {baht(detail.total)}
+                </span>
+              </div>
 
-            <div className="space-y-3">
-              {detail.session?.orders.length ? (
-                detail.session.orders.map((o) => (
-                  <div key={o.id} className="border border-neutral-200 rounded-lg p-3">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs text-neutral-400">
-                        ออเดอร์ #{o.id} ·{" "}
-                        {new Date(o.createdAt).toLocaleTimeString("th-TH", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                      <StatusBadge status={o.status} />
-                    </div>
-                    <ul className="text-sm mb-3">
-                      {o.items.map((it) => (
-                        <li key={it.id} className="flex justify-between py-0.5">
-                          <span>
-                            {it.name} x{it.quantity}
+              <div>
+                {detail.session?.orders.length ? (
+                  detail.session.orders.map((o) => {
+                    const ov = orderView(o.status);
+                    return (
+                      <div key={o.id} className="ocard">
+                        <div className="ocard-top">
+                          <span className="ocard-id">
+                            ออเดอร์ #{o.id} ·{" "}
+                            {new Date(o.createdAt).toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}
                           </span>
-                          <span className="font-semibold">
-                            {baht(it.price * it.quantity)}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                    {o.note ? (
-                      <div className="mb-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-900">
-                        📝 หมายเหตุ: {o.note}
-                      </div>
-                    ) : null}
-                    {o.status !== "CANCELLED" && (
-                      <div className="flex gap-2 mt-3">
-                        {o.status === "PENDING" && (
-                          <button
-                            onClick={() => setOrderStatus(o.id, "COOKING")}
-                            className="flex-1 py-2 rounded-full bg-[var(--accent)] text-white font-semibold hover:opacity-90 transition"
-                          >
-                            รับออเดอร์
-                          </button>
-                        )}
-                        {o.status === "COOKING" && (
-                          <button
-                            onClick={() => setEditingOrder(o)}
-                            className="flex-1 py-2 rounded-lg border border-neutral-300 font-semibold text-neutral-700 hover:bg-neutral-50 transition"
-                          >
-                            แก้ไข
-                          </button>
-                        )}
-                        {o.status !== "PENDING" && (
-                          <button
-                            onClick={() => setOrderStatus(o.id, "CANCELLED")}
-                            className="flex-1 py-2 rounded-lg border border-red-300 text-red-600 font-semibold hover:bg-red-50 transition"
-                          >
-                            ยกเลิก
-                          </button>
-                        )}
-                        {o.status === "PENDING" && (
-                          <button
-                            onClick={() => setOrderStatus(o.id, "CANCELLED")}
-                            className="flex-1 py-2 rounded-lg border border-red-300 text-red-600 font-semibold hover:bg-red-50 transition"
-                          >
-                            ยกเลิก
-                          </button>
+                          <span className="sbadge" style={{ background: ov.bg, color: ov.color }}>{ov.label}</span>
+                        </div>
+                        {o.items.map((it) => (
+                          <div key={it.id} className="oline">
+                            <span>{it.name} x{it.quantity}</span>
+                            <span className="num">{baht(it.price * it.quantity)}</span>
+                          </div>
+                        ))}
+                        {o.note ? <div className="onote">📝 {o.note}</div> : null}
+                        {o.status !== "CANCELLED" && (
+                          <div className="oactions">
+                            {o.status === "PENDING" && (
+                              <button onClick={() => setOrderStatus(o.id, "COOKING")} className="btn btn-primary">
+                                รับออเดอร์
+                              </button>
+                            )}
+                            {o.status !== "PENDING" && (
+                              <button onClick={() => setEditingOrder(o)} className="btn btn-ghost">
+                                แก้ไข
+                              </button>
+                            )}
+                            <button onClick={() => setOrderStatus(o.id, "CANCELLED")} className="btn btn-danger">
+                              ยกเลิก
+                            </button>
+                          </div>
                         )}
                       </div>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <p className="text-sm text-neutral-400 py-4 text-center">
-                  ยังไม่มีออเดอร์ในโต๊ะนี้
-                </p>
-              )}
-            </div>
+                    );
+                  })
+                ) : (
+                  <p className="empty-note">ยังไม่มีออเดอร์ในโต๊ะนี้</p>
+                )}
+              </div>
             </div>
           );
         })()}
 
-        {selectedTable && !detail && (
-          <p className="text-sm text-neutral-400">กำลังโหลด...</p>
-        )}
+        {selectedTable && !detail && <p className="empty-note">กำลังโหลด...</p>}
       </div>
 
       {qrTable && <TableQrModal table={qrTable} onClose={() => setQrTable(null)} />}
@@ -360,102 +310,110 @@ export default function OrdersPage() {
       )}
 
       {addTableOpen && (
-        <div className="fixed inset-0 bg-black/40 z-20 flex items-center justify-center">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
-            <h3 className="font-bold text-lg mb-4">เพิ่มโต๊ะใหม่</h3>
-            <input
-              type="text"
-              placeholder="ชื่อโต๊ะ (เช่น โต๊ะ 1, A1, ฯลฯ)"
-              value={newTableName}
-              onChange={(e) => setNewTableName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") addNewTable();
-              }}
-              autoFocus
-              className="w-full border border-neutral-300 rounded px-3 py-2 text-sm mb-4"
-            />
-            <div className="flex gap-2">
-              <button
-                onClick={addNewTable}
-                className="flex-1 px-4 py-2 rounded-full bg-[var(--accent)] text-white text-sm font-semibold"
-              >
-                เพิ่ม
-              </button>
-              <button
-                onClick={() => {
-                  setAddTableOpen(false);
-                  setNewTableName("");
-                }}
-                className="flex-1 px-4 py-2 rounded border border-neutral-300 text-sm font-semibold"
-              >
-                ยกเลิก
-              </button>
-            </div>
-          </div>
-        </div>
+        <TableNameModal
+          title="เพิ่มโต๊ะใหม่"
+          value={newTableName}
+          placeholder="ชื่อโต๊ะ (เช่น โต๊ะ 1, A1, ฯลฯ)"
+          confirmLabel="เพิ่ม"
+          onChange={setNewTableName}
+          onConfirm={addNewTable}
+          onClose={() => {
+            setAddTableOpen(false);
+            setNewTableName("");
+          }}
+        />
       )}
-
       {editTableOpen && (
-        <div className="fixed inset-0 bg-black/40 z-20 flex items-center justify-center">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
-            <h3 className="font-bold text-lg mb-4">แก้ไขชื่อโต๊ะ</h3>
-            <input
-              type="text"
-              placeholder="ชื่อโต๊ะใหม่"
-              value={editTableNameValue}
-              onChange={(e) => setEditTableNameValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") updateTableName();
-              }}
-              autoFocus
-              className="w-full border border-neutral-300 rounded px-3 py-2 text-sm mb-4"
-            />
-            <div className="flex gap-2">
-              <button
-                onClick={updateTableName}
-                className="flex-1 px-4 py-2 rounded-full bg-[var(--accent)] text-white text-sm font-semibold"
-              >
-                บันทึก
-              </button>
-              <button
-                onClick={() => {
-                  setEditTableOpen(null);
-                  setEditTableNameValue("");
-                }}
-                className="flex-1 px-4 py-2 rounded border border-neutral-300 text-sm font-semibold"
-              >
-                ยกเลิก
-              </button>
-            </div>
-          </div>
-        </div>
+        <TableNameModal
+          title="แก้ไขชื่อโต๊ะ"
+          value={editTableNameValue}
+          placeholder="ชื่อโต๊ะใหม่"
+          confirmLabel="บันทึก"
+          onChange={setEditTableNameValue}
+          onConfirm={updateTableName}
+          onClose={() => {
+            setEditTableOpen(null);
+            setEditTableNameValue("");
+          }}
+        />
       )}
     </div>
   );
 }
 
-function TableQrModal({ table, onClose }: { table: TableRow; onClose: () => void }) {
-  const [data, setData] = useState<{ url: string; qrDataUrl: string } | null>(null);
+function Modal({ children, onClose, wide }: { children: React.ReactNode; onClose: () => void; wide?: boolean }) {
+  return (
+    <div className="adm-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className={`adm-modal${wide ? " wide" : ""}`}>{children}</div>
+    </div>
+  );
+}
 
-  useEffect(() => {
-    fetch(`/api/tables/${table.id}`)
-      .then((r) => r.json())
-      .then(setData);
-  }, [table.id]);
-
+function TableNameModal({
+  title,
+  value,
+  placeholder,
+  confirmLabel,
+  onChange,
+  onConfirm,
+  onClose,
+}: {
+  title: string;
+  value: string;
+  placeholder: string;
+  confirmLabel: string;
+  onChange: (v: string) => void;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
   return (
     <Modal onClose={onClose}>
-      <h3 className="font-bold text-lg mb-3">QR โต๊ะ {table.name}</h3>
-      {data ? (
-        <div className="text-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={data.qrDataUrl} alt="table qr" className="mx-auto w-64 h-64" />
-          <p className="text-xs text-neutral-400 mt-2 break-all">{data.url}</p>
-          <p className="text-sm text-neutral-500 mt-2">พิมพ์ QR นี้ติดไว้ที่โต๊ะ</p>
+      <div className="m-head">
+        <h3>{title}</h3>
+        <button className="m-close" onClick={onClose}>×</button>
+      </div>
+      <div className="m-body">
+        <input
+          type="text"
+          className="input"
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && onConfirm()}
+          autoFocus
+        />
+        <div className="flex gap-2" style={{ marginTop: 16 }}>
+          <button onClick={onConfirm} className="btn btn-primary" style={{ flex: 1 }}>{confirmLabel}</button>
+          <button onClick={onClose} className="btn btn-ghost" style={{ flex: 1 }}>ยกเลิก</button>
         </div>
-      ) : (
-        <p className="text-center text-neutral-400 py-8">กำลังโหลด...</p>
-      )}
+      </div>
+    </Modal>
+  );
+}
+
+function TableQrModal({ table, onClose }: { table: TableRow; onClose: () => void }) {
+  const [data, setData] = useState<{ url: string; qrDataUrl: string } | null>(null);
+  useEffect(() => {
+    fetch(`/api/tables/${table.id}`).then((r) => r.json()).then(setData);
+  }, [table.id]);
+  return (
+    <Modal onClose={onClose}>
+      <div className="m-head">
+        <h3>QR โต๊ะ {table.name}</h3>
+        <button className="m-close" onClick={onClose}>×</button>
+      </div>
+      <div className="m-body" style={{ textAlign: "center" }}>
+        {data ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={data.qrDataUrl} alt="table qr" style={{ width: 220, height: 220, margin: "0 auto" }} />
+            <p style={{ fontSize: 11, color: "var(--ink-faint)", marginTop: 8, wordBreak: "break-all" }}>{data.url}</p>
+            <p style={{ fontSize: 13, color: "var(--ink-soft)", marginTop: 8 }}>พิมพ์ QR นี้ติดไว้ที่โต๊ะ</p>
+          </>
+        ) : (
+          <p className="empty-note">กำลังโหลด...</p>
+        )}
+      </div>
     </Modal>
   );
 }
@@ -470,6 +428,7 @@ function CheckoutModal({
   onConfirmed: () => void;
 }) {
   const [qr, setQr] = useState<{ qrDataUrl: string; total: number } | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [trueMoneyPayment, setTrueMoneyPayment] = useState<any | null>(null);
   const [useTrueMoney, setUseTrueMoney] = useState(false);
   const [error, setError] = useState("");
@@ -481,7 +440,6 @@ function CheckoutModal({
     const initCheckout = async () => {
       try {
         const settings = await fetch("/api/settings").then((r) => r.json());
-
         if (settings.useTrueMoneyBox && settings.trueMoneyApiKey) {
           setUseTrueMoney(true);
           const res = await fetch("/api/truemoney/create-payment", {
@@ -504,11 +462,10 @@ function CheckoutModal({
           setQr(data);
           setTimeLeft(300);
         }
-      } catch (e: any) {
-        setError(e.message);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด");
       }
     };
-
     initCheckout();
   }, [table.activeSessionId, table.total]);
 
@@ -524,6 +481,7 @@ function CheckoutModal({
       });
     }, 1000);
     return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qr, trueMoneyPayment]);
 
   const minutes = Math.floor(timeLeft / 60);
@@ -548,99 +506,52 @@ function CheckoutModal({
 
   return (
     <Modal onClose={onClose}>
-      <div className="text-center space-y-4 max-w-sm">
+      <div className="m-head">
+        <h3>เช็คบิล · {table.name}</h3>
+        <button className="m-close" onClick={onClose}>×</button>
+      </div>
+      <div className="m-body" style={{ textAlign: "center" }}>
         {error && (
-          <p className="text-red-500 text-sm mb-2">
+          <p style={{ color: "#c5352c", fontSize: 13, marginBottom: 10 }}>
             {error} — ตั้งค่า {useTrueMoney ? "TrueMoney Box" : "PromptPay"} ที่หน้า &quot;ตั้งค่าร้านค้า&quot;
           </p>
         )}
 
-        {useTrueMoney && trueMoneyPayment ? (
+        {(useTrueMoney && trueMoneyPayment) || qr ? (
           <>
-            <div className="font-bold text-lg text-neutral-900">{table.name}</div>
-
-            <div className="space-y-2">
-              <div className="text-sm font-bold text-neutral-700">💚 TrueMoney Box Payment</div>
-              <div className="text-sm font-bold text-neutral-700">ชำระผ่าน TrueMoney</div>
+            <div style={{ fontWeight: 800, fontSize: 13, color: "var(--ink-soft)", marginBottom: 10 }}>
+              {useTrueMoney ? "💚 TrueMoney · ชำระผ่านทรูมันนี่" : "Thai QR · PromptPay พร้อมเพย์"}
             </div>
-
-            <div className="bg-neutral-100 p-4 rounded-lg">
-              {trueMoneyPayment.qrCode ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={trueMoneyPayment.qrCode} alt="truemoney qr" className="mx-auto w-56 h-56" />
-              ) : trueMoneyPayment.moneyLink ? (
-                <div>
-                  <p className="text-sm mb-2">สแกน QR หรือกดลิงค์ด้านล่าง</p>
-                  <a
-                    href={trueMoneyPayment.moneyLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-block px-4 py-2 bg-green-600 text-white rounded text-sm font-semibold hover:bg-green-700"
-                  >
+            <div style={{ background: "var(--card)", borderRadius: 16, padding: 16, boxShadow: "0 8px 20px -16px rgba(42,27,18,0.5)" }}>
+              {useTrueMoney && trueMoneyPayment ? (
+                trueMoneyPayment.qrCode ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={trueMoneyPayment.qrCode} alt="truemoney qr" style={{ width: 210, height: 210, margin: "0 auto" }} />
+                ) : trueMoneyPayment.moneyLink ? (
+                  <a href={trueMoneyPayment.moneyLink} target="_blank" rel="noopener noreferrer" className="btn btn-green">
                     ชำระเงิน
                   </a>
-                </div>
-              ) : (
-                <p className="text-sm text-neutral-500">กำลังสร้าง QR...</p>
-              )}
+                ) : (
+                  <p style={{ color: "var(--ink-faint)" }}>กำลังสร้าง QR...</p>
+                )
+              ) : qr ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={qr.qrDataUrl} alt="promptpay qr" style={{ width: 210, height: 210, margin: "0 auto" }} />
+              ) : null}
             </div>
-
-            <div className="text-3xl font-bold text-neutral-900">
+            <div style={{ fontSize: 28, fontWeight: 800, margin: "12px 0" }}>
               {minutes.toString().padStart(2, "0")}:{seconds.toString().padStart(2, "0")}
             </div>
-
-            <div className="bg-blue-100 text-blue-900 rounded-lg p-3 text-sm font-semibold">
-              Invoice #{table.id} ยอดชำระ {baht(trueMoneyPayment.amount || table.total)}
+            <div style={{ background: "#EAF1FF", color: "#2158C9", borderRadius: 12, padding: 11, fontSize: 13.5, fontWeight: 700 }}>
+              Invoice #{table.id} · ยอดชำระ {baht((trueMoneyPayment && trueMoneyPayment.amount) || (qr && qr.total) || table.total)}
             </div>
-
-            <button
-              onClick={confirmPaid}
-              disabled={confirming || !showConfirmButton}
-              className="w-full py-3 rounded-lg bg-green-600 text-white font-bold text-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <button onClick={confirmPaid} disabled={confirming || !showConfirmButton} className="btn btn-green btn-block" style={{ marginTop: 14 }}>
               {confirming ? "กำลังบันทึก..." : "✓ ยืนยันเงินเข้าแล้ว!"}
             </button>
-
-            {!showConfirmButton && (
-              <p className="text-red-500 text-sm font-semibold">หมดเวลา โปรดเรียกอีกครั้ง</p>
-            )}
-          </>
-        ) : qr ? (
-          <>
-            <div className="font-bold text-lg text-neutral-900">{table.name}</div>
-
-            <div className="space-y-2">
-              <div className="text-sm font-bold text-neutral-700">THAI QR PAYMENT</div>
-              <div className="text-sm font-bold text-neutral-700">PromptPay พร้อมเพย์</div>
-            </div>
-
-            <div className="bg-neutral-100 p-4 rounded-lg">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={qr.qrDataUrl} alt="promptpay qr" className="mx-auto w-56 h-56" />
-            </div>
-
-            <div className="text-3xl font-bold text-neutral-900">
-              {minutes.toString().padStart(2, "0")}:{seconds.toString().padStart(2, "0")}
-            </div>
-
-            <div className="bg-blue-100 text-blue-900 rounded-lg p-3 text-sm font-semibold">
-              Invoice #{table.id} ยอดชำระ {baht(qr.total)}
-            </div>
-
-            <button
-              onClick={confirmPaid}
-              disabled={confirming || !showConfirmButton}
-              className="w-full py-3 rounded-lg bg-green-600 text-white font-bold text-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {confirming ? "กำลังบันทึก..." : "✓ ยืนยันเงินเข้าแล้ว!"}
-            </button>
-
-            {!showConfirmButton && (
-              <p className="text-red-500 text-sm font-semibold">หมดเวลา โปรดเรียกอีกครั้ง</p>
-            )}
+            {!showConfirmButton && <p style={{ color: "#c5352c", fontSize: 13, fontWeight: 700, marginTop: 8 }}>หมดเวลา โปรดเรียกอีกครั้ง</p>}
           </>
         ) : (
-          !error && <p className="text-center text-neutral-400 py-8">กำลังสร้าง QR...</p>
+          !error && <p className="empty-note">กำลังสร้าง QR...</p>
         )}
       </div>
     </Modal>
@@ -665,41 +576,23 @@ function EditOrderModal({
   const [saving, setSaving] = useState(false);
 
   function menuName(id: number) {
-    return (
-      order.items.find((it) => it.menuItemId === id)?.name ??
-      menu.find((m) => m.id === id)?.name ??
-      "?"
-    );
+    return order.items.find((it) => it.menuItemId === id)?.name ?? menu.find((m) => m.id === id)?.name ?? "?";
   }
   function menuPrice(id: number) {
-    return (
-      order.items.find((it) => it.menuItemId === id)?.price ??
-      menu.find((m) => m.id === id)?.price ??
-      0
-    );
+    return order.items.find((it) => it.menuItemId === id)?.price ?? menu.find((m) => m.id === id)?.price ?? 0;
   }
-
   function inc(id: number) {
     setQty((q) => ({ ...q, [id]: (q[id] || 0) + 1 }));
   }
   function dec(id: number) {
-    setQty((q) => {
-      const next = { ...q };
-      next[id] = Math.max(0, (next[id] || 0) - 1);
-      return next;
-    });
+    setQty((q) => ({ ...q, [id]: Math.max(0, (q[id] || 0) - 1) }));
   }
-
   function addItem() {
     if (!addId) return;
     inc(Number(addId));
     setAddId("");
   }
-
-  const total = Object.entries(qty).reduce(
-    (sum, [id, n]) => sum + menuPrice(Number(id)) * n,
-    0
-  );
+  const total = Object.entries(qty).reduce((sum, [id, n]) => sum + menuPrice(Number(id)) * n, 0);
 
   async function save() {
     setSaving(true);
@@ -724,65 +617,43 @@ function EditOrderModal({
 
   return (
     <Modal onClose={onClose} wide>
-      <h3 className="font-bold text-lg mb-3">แก้ไขออเดอร์ #{order.id}</h3>
-      <div className="space-y-2">
-        {Object.entries(qty).map(([id, n]) => (
-          <div key={id} className="flex justify-between items-center">
-            <div>
-              <div className="text-sm font-medium">{menuName(Number(id))}</div>
-              <div className="text-xs text-neutral-400">{baht(menuPrice(Number(id)))}</div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => dec(Number(id))}
-                className="w-7 h-7 rounded border border-neutral-300 font-bold"
-              >
-                −
-              </button>
-              <span className="w-6 text-center text-sm font-semibold">{n}</span>
-              <button
-                onClick={() => inc(Number(id))}
-                className="w-7 h-7 rounded border border-neutral-300 font-bold"
-              >
-                +
-              </button>
-            </div>
-          </div>
-        ))}
+      <div className="m-head">
+        <h3>แก้ไขออเดอร์ #{order.id}</h3>
+        <button className="m-close" onClick={onClose}>×</button>
       </div>
-
-      <div className="flex gap-2 mt-4">
-        <select
-          value={addId}
-          onChange={(e) => setAddId(e.target.value)}
-          className="flex-1 border border-neutral-300 rounded px-2 py-1.5 text-sm"
-        >
-          <option value="">+ เพิ่มรายการ...</option>
-          {availableToAdd.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.name} ({baht(m.price)})
-            </option>
+      <div className="m-body">
+        <div>
+          {Object.entries(qty).map(([id, n]) => (
+            <div key={id} className="oline" style={{ alignItems: "center", padding: "8px 0" }}>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 14 }}>{menuName(Number(id))}</div>
+                <div style={{ fontSize: 12, color: "var(--ink-faint)" }}>{baht(menuPrice(Number(id)))}</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => dec(Number(id))} className="icon-btn-sm">−</button>
+                <span style={{ width: 24, textAlign: "center", fontWeight: 800 }}>{n}</span>
+                <button onClick={() => inc(Number(id))} className="icon-btn-sm">+</button>
+              </div>
+            </div>
           ))}
-        </select>
-        <button
-          onClick={addItem}
-          className="px-3 py-1.5 rounded border border-neutral-300 text-sm font-semibold"
-        >
-          เพิ่ม
+        </div>
+        <div className="flex gap-2" style={{ marginTop: 14 }}>
+          <select value={addId} onChange={(e) => setAddId(e.target.value)} className="select" style={{ flex: 1 }}>
+            <option value="">+ เพิ่มรายการ...</option>
+            {availableToAdd.map((m) => (
+              <option key={m.id} value={m.id}>{m.name} ({baht(m.price)})</option>
+            ))}
+          </select>
+          <button onClick={addItem} className="btn btn-ghost">เพิ่ม</button>
+        </div>
+        <div className="flex justify-between items-center" style={{ marginTop: 16, fontWeight: 800 }}>
+          <span>รวม</span>
+          <span className="num">{baht(total)}</span>
+        </div>
+        <button onClick={save} disabled={saving} className="btn btn-primary btn-block" style={{ marginTop: 14 }}>
+          {saving ? "กำลังบันทึก..." : "บันทึกการแก้ไข"}
         </button>
       </div>
-
-      <div className="flex justify-between items-center mt-4 font-bold">
-        <span>รวม</span>
-        <span>{baht(total)}</span>
-      </div>
-      <button
-        onClick={save}
-        disabled={saving}
-        className="w-full mt-4 py-2.5 rounded-full bg-[var(--accent)] text-white font-semibold disabled:opacity-50"
-      >
-        {saving ? "กำลังบันทึก..." : "บันทึกการแก้ไข"}
-      </button>
     </Modal>
   );
 }

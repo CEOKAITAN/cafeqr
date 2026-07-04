@@ -3,6 +3,48 @@
 import { useEffect, useState } from "react";
 import { resizeImageToBase64 } from "@/lib/image";
 
+function Switch({ on, onClick }: { on: boolean; onClick: () => void }) {
+  return (
+    <button className="switch" style={{ background: on ? "#34c77b" : "#e88" }} onClick={onClick} type="button">
+      <span className="knob" style={{ transform: on ? "translateX(24px)" : "translateX(0)" }} />
+    </button>
+  );
+}
+
+function ImageUploadCard({
+  title,
+  hint,
+  url,
+  uploading,
+  onUpload,
+  onRemove,
+  maxH,
+}: {
+  title: string;
+  hint: string;
+  url: string;
+  uploading: boolean;
+  onUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onRemove: () => void;
+  maxH?: number;
+}) {
+  return (
+    <div className="card card-pad" style={{ marginBottom: 14 }}>
+      <h3 className="sec-title" style={{ fontSize: 15, marginBottom: 4 }}>{title}</h3>
+      <p style={{ fontSize: 12, color: "var(--ink-faint)", marginBottom: 12 }}>{hint}</p>
+      {url && (
+        <div style={{ marginBottom: 12 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={url} alt={title} style={{ width: "100%", maxHeight: maxH || 220, objectFit: "contain", borderRadius: 12, border: "1px solid var(--line)" }} />
+          <button onClick={onRemove} className="btn btn-danger" style={{ padding: "7px 12px", fontSize: 13, marginTop: 8 }}>ลบรูป</button>
+        </div>
+      )}
+      <input type="file" accept="image/*" onChange={onUpload} disabled={uploading} style={{ fontSize: 13 }} />
+      {uploading && <span style={{ marginLeft: 8, fontSize: 13, color: "var(--ink-soft)" }}>กำลังอัปโหลด...</span>}
+    </div>
+  );
+}
+
 export default function SettingsContent() {
   const [shopName, setShopName] = useState("");
   const [promptPayId, setPromptPayId] = useState("");
@@ -78,47 +120,28 @@ export default function SettingsContent() {
     setTimeout(() => setSaved(false), 2000);
   }
 
-  async function uploadBanner(e: React.ChangeEvent<HTMLInputElement>) {
+  async function uploadImage(
+    e: React.ChangeEvent<HTMLInputElement>,
+    setUrl: (v: string) => void,
+    setBusy: (v: boolean) => void,
+    maxW: number,
+    quality: number
+  ) {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       alert("ต้องเป็นไฟล์รูปภาพ");
       return;
     }
-    setUploadingBanner(true);
+    setBusy(true);
     try {
-      // แบนเนอร์แนวนอน ย่อกว้างสุด 1000px
-      const base64 = await resizeImageToBase64(file, 1000, 0.75);
-      setBannerUrl(base64);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "ประมวลผลแบนเนอร์ไม่สำเร็จ");
+      const base64 = await resizeImageToBase64(file, maxW, quality);
+      setUrl(base64);
+    } catch {
+      alert("ประมวลผลรูปไม่สำเร็จ");
     } finally {
-      setUploadingBanner(false);
+      setBusy(false);
     }
-  }
-
-  async function uploadHero(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) { alert("ต้องเป็นไฟล์รูปภาพ"); return; }
-    setUploadingHero(true);
-    try {
-      const base64 = await resizeImageToBase64(file, 1000, 0.75);
-      setHeroImageUrl(base64);
-    } catch { alert("ประมวลผลรูปไม่สำเร็จ"); }
-    finally { setUploadingHero(false); }
-  }
-
-  async function uploadPopup(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) { alert("ต้องเป็นไฟล์รูปภาพ"); return; }
-    setUploadingPopup(true);
-    try {
-      const base64 = await resizeImageToBase64(file, 800, 0.8);
-      setPopupImageUrl(base64);
-    } catch { alert("ประมวลผลรูปไม่สำเร็จ"); }
-    finally { setUploadingPopup(false); }
   }
 
   async function clearAllData() {
@@ -126,13 +149,9 @@ export default function SettingsContent() {
       alert("รหัสยืนยันไม่ถูกต้อง");
       return;
     }
-
     setClearing(true);
     try {
-      const res = await fetch("/api/admin/clear-data", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
+      const res = await fetch("/api/admin/clear-data", { method: "POST", headers: { "Content-Type": "application/json" } });
       if (res.ok) {
         setClearDataOpen(false);
         setConfirmCode("");
@@ -145,259 +164,150 @@ export default function SettingsContent() {
     }
   }
 
+  const webhookUrl =
+    (typeof window !== "undefined" ? window.location.origin : "") +
+    "/api/webhook/truemoney" +
+    (trueMoneySecret ? `?secret=${trueMoneySecret}` : "");
+
   return (
-    <div className="space-y-4">
-      <div>
-        <label className="block text-sm font-semibold mb-1">ชื่อร้าน</label>
-        <input
-          value={shopName}
-          onChange={(e) => setShopName(e.target.value)}
-          className="w-full border border-neutral-300 rounded px-3 py-2 text-sm"
-        />
+    <div>
+      {/* ข้อมูลร้าน */}
+      <div className="card card-pad" style={{ marginBottom: 14 }}>
+        <h3 className="sec-title" style={{ fontSize: 15 }}>ข้อมูลร้าน</h3>
+        <div className="field">
+          <label>ชื่อร้าน</label>
+          <input className="input" value={shopName} onChange={(e) => setShopName(e.target.value)} />
+        </div>
+        <div className="field">
+          <label>เลขพร้อมเพย์ (เบอร์โทร / เลขบัตร ปชช.)</label>
+          <input className="input" value={promptPayId} onChange={(e) => setPromptPayId(e.target.value)} placeholder="0812345678" />
+        </div>
+        <div className="field">
+          <label>ชื่อบัญชีรับเงิน</label>
+          <input className="input" value={accountName} onChange={(e) => setAccountName(e.target.value)} placeholder="ชื่อบัญชีที่ผูกกับพร้อมเพย์" />
+        </div>
+        <div className="field">
+          <label>จำนวนโต๊ะ</label>
+          <input className="input" type="number" min={0} value={tableCount} onChange={(e) => setTableCount(Number(e.target.value))} />
+          <p style={{ fontSize: 12, color: "var(--ink-faint)", marginTop: 6 }}>
+            เพิ่ม/ลดจำนวน แล้วกดบันทึกเพื่อสร้างหรือลบโต๊ะให้ตรงจำนวน (จะไม่ลบโต๊ะที่มีบิลค้างอยู่)
+          </p>
+        </div>
+        <div className="field">
+          <label>ข้อความโปรวันนี้ (โชว์ใน Hero)</label>
+          <input className="input" value={promoText} onChange={(e) => setPromoText(e.target.value)} placeholder="เช่น ซื้อครบ 100.- รับคุกกี้ฟรี 1 ชิ้น" />
+        </div>
+        <div className="lrow" style={{ marginBottom: 0 }}>
+          <div className="grow"><div className="lname">เปิดรับออเดอร์</div></div>
+          <Switch on={acceptingOrders} onClick={() => setAcceptingOrders((v) => !v)} />
+        </div>
+        {warning && <p style={{ color: "#b8860b", fontSize: 13, marginTop: 10 }}>{warning}</p>}
       </div>
 
-      <div>
-        <label className="block text-sm font-semibold mb-1">
-          เลขพร้อมเพย์ของร้าน (เบอร์โทร / เลขบัตร ปชช.)
-        </label>
-        <input
-          value={promptPayId}
-          onChange={(e) => setPromptPayId(e.target.value)}
-          placeholder="0812345678"
-          className="w-full border border-neutral-300 rounded px-3 py-2 text-sm"
-        />
-      </div>
+      {/* รูปภาพหน้าร้าน */}
+      <ImageUploadCard
+        title="🖼️ ป้ายโฆษณา (Banner)"
+        hint="รูปแบนเนอร์แสดงใต้ส่วนหัวในหน้าลูกค้า — แนะนำรูปแนวนอน"
+        url={bannerUrl}
+        uploading={uploadingBanner}
+        onUpload={(e) => uploadImage(e, setBannerUrl, setUploadingBanner, 1000, 0.75)}
+        onRemove={() => setBannerUrl("")}
+      />
+      <ImageUploadCard
+        title="🎨 รูปพื้นหลังส่วนหัว (Hero)"
+        hint="พื้นหลังส่วนหัวหน้าลูกค้า จะมีเคลือบสีส้มทับให้อ่านออก — ถ้าไม่ใส่จะเป็นพื้นไล่สีส้มปกติ"
+        url={heroImageUrl}
+        uploading={uploadingHero}
+        onUpload={(e) => uploadImage(e, setHeroImageUrl, setUploadingHero, 1000, 0.75)}
+        onRemove={() => setHeroImageUrl("")}
+      />
 
-      <div>
-        <label className="block text-sm font-semibold mb-1">ชื่อบัญชีรับเงิน</label>
-        <input
-          value={accountName}
-          onChange={(e) => setAccountName(e.target.value)}
-          placeholder="ชื่อบัญชีที่ผูกกับพร้อมเพย์"
-          className="w-full border border-neutral-300 rounded px-3 py-2 text-sm"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-semibold mb-1">จำนวนโต๊ะ</label>
-        <input
-          type="number"
-          min={0}
-          value={tableCount}
-          onChange={(e) => setTableCount(Number(e.target.value))}
-          className="w-full border border-neutral-300 rounded px-3 py-2 text-sm"
-        />
-        <p className="text-xs text-neutral-400 mt-1">
-          เพิ่ม/ลดจำนวน แล้วกดบันทึกเพื่อสร้างหรือลบโต๊ะให้ตรงจำนวน (จะไม่ลบโต๊ะที่มีบิลค้างอยู่)
-        </p>
-      </div>
-
-      <label className="flex items-center justify-between border border-neutral-200 rounded px-3 py-2">
-        <span className="text-sm font-semibold">เปิดรับออเดอร์</span>
-        <input
-          type="checkbox"
-          checked={acceptingOrders}
-          onChange={(e) => setAcceptingOrders(e.target.checked)}
-          className="w-5 h-5"
-        />
-      </label>
-
-      {warning && <p className="text-sm text-amber-600">{warning}</p>}
-
-      <div>
-        <label className="block text-sm font-semibold mb-1">ข้อความโปรวันนี้ (โชว์ใน Hero)</label>
-        <input
-          value={promoText}
-          onChange={(e) => setPromoText(e.target.value)}
-          placeholder="เช่น ซื้อครบ 100 ส่งฟรี! หรือ เมนูใหม่มาแล้ว"
-          className="w-full border border-neutral-300 rounded px-3 py-2 text-sm"
-        />
-      </div>
-
-      <div className="border-t border-neutral-200 pt-6 mt-6">
-        <h3 className="font-bold text-sm text-neutral-900 mb-3">🖼️ ป้ายโฆษณา (Banner)</h3>
-        <p className="text-xs text-neutral-500 mb-3">
-          รูปแบนเนอร์จะแสดงใต้ส่วนหัวในหน้าลูกค้า (เช่น โปรโมชัน 1 แถม 1) — แนะนำรูปแนวนอน
-        </p>
-        {bannerUrl && (
-          <div className="mb-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={bannerUrl} alt="banner" className="w-full rounded-lg border border-neutral-200" />
-            <button
-              onClick={() => setBannerUrl("")}
-              className="mt-2 text-xs text-red-600 font-semibold"
-            >
-              ลบแบนเนอร์
-            </button>
-          </div>
-        )}
-        <input
-          type="file"
-          accept="image/*"
-          onChange={uploadBanner}
-          disabled={uploadingBanner}
-          className="text-sm"
-        />
-        {uploadingBanner && <span className="ml-2 text-sm text-neutral-500">กำลังอัปโหลด...</span>}
-      </div>
-
-      <div className="border-t border-neutral-200 pt-6 mt-6">
-        <h3 className="font-bold text-sm text-neutral-900 mb-3">🎨 รูปพื้นหลังส่วนหัว (Hero)</h3>
-        <p className="text-xs text-neutral-500 mb-3">
-          รูปพื้นหลังของส่วนหัวหน้าลูกค้า จะมีเคลือบสีส้มทับให้ตัวอักษรอ่านออก — ถ้าไม่ใส่จะเป็นพื้นไล่สีส้มปกติ
-        </p>
-        {heroImageUrl && (
-          <div className="mb-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={heroImageUrl} alt="hero" className="w-full rounded-lg border border-neutral-200" />
-            <button onClick={() => setHeroImageUrl("")} className="mt-2 text-xs text-red-600 font-semibold">
-              ลบรูปพื้นหลัง (กลับเป็นพื้นส้มเดิม)
-            </button>
-          </div>
-        )}
-        <input type="file" accept="image/*" onChange={uploadHero} disabled={uploadingHero} className="text-sm" />
-        {uploadingHero && <span className="ml-2 text-sm text-neutral-500">กำลังอัปโหลด...</span>}
-      </div>
-
-      <div className="border-t border-neutral-200 pt-6 mt-6">
-        <h3 className="font-bold text-sm text-neutral-900 mb-3">📣 ป๊อปอัพโฆษณา (เด้งตอนเปิดเว็บ)</h3>
-        <label className="flex items-center justify-between border border-neutral-200 rounded px-3 py-2 mb-3">
-          <span className="text-sm font-semibold">เปิดใช้ป๊อปอัพ</span>
-          <input type="checkbox" checked={popupEnabled} onChange={(e) => setPopupEnabled(e.target.checked)} className="w-5 h-5" />
-        </label>
-        <p className="text-xs text-neutral-500 mb-3">
-          รูปโปรที่เด้งขึ้นกลางจอตอนลูกค้าเปิดเว็บ (แนะนำ PNG พื้นหลังโปร่งใส จะลอยเด่นสวย) — เด้งครั้งเดียวต่อการเข้า
+      {/* ป๊อปอัพ */}
+      <div className="card card-pad" style={{ marginBottom: 14 }}>
+        <h3 className="sec-title" style={{ fontSize: 15, marginBottom: 4 }}>📣 ป๊อปอัพโฆษณา</h3>
+        <div className="lrow" style={{ marginBottom: 12 }}>
+          <div className="grow"><div className="lname">เปิดใช้ป๊อปอัพ (เด้งตอนเปิดเว็บ)</div></div>
+          <Switch on={popupEnabled} onClick={() => setPopupEnabled((v) => !v)} />
+        </div>
+        <p style={{ fontSize: 12, color: "var(--ink-faint)", marginBottom: 12 }}>
+          รูปโปรที่เด้งกลางจอตอนลูกค้าเปิดเว็บ (แนะนำ PNG พื้นหลังโปร่งใส) — เด้งครั้งเดียวต่อการเข้า
         </p>
         {popupImageUrl && (
-          <div className="mb-3">
+          <div style={{ marginBottom: 12 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={popupImageUrl} alt="popup" className="max-h-48 rounded-lg border border-neutral-200" />
-            <button onClick={() => setPopupImageUrl("")} className="mt-2 block text-xs text-red-600 font-semibold">
-              ลบรูปป๊อปอัพ
-            </button>
+            <img src={popupImageUrl} alt="popup" style={{ maxHeight: 200, borderRadius: 12, border: "1px solid var(--line)" }} />
+            <button onClick={() => setPopupImageUrl("")} className="btn btn-danger" style={{ padding: "7px 12px", fontSize: 13, marginTop: 8, display: "block" }}>ลบรูป</button>
           </div>
         )}
-        <input type="file" accept="image/*" onChange={uploadPopup} disabled={uploadingPopup} className="text-sm" />
-        {uploadingPopup && <span className="ml-2 text-sm text-neutral-500">กำลังอัปโหลด...</span>}
+        <input type="file" accept="image/*" onChange={(e) => uploadImage(e, setPopupImageUrl, setUploadingPopup, 800, 0.8)} disabled={uploadingPopup} style={{ fontSize: 13 }} />
+        {uploadingPopup && <span style={{ marginLeft: 8, fontSize: 13, color: "var(--ink-soft)" }}>กำลังอัปโหลด...</span>}
       </div>
 
-      <div className="border-t border-neutral-200 pt-6 mt-6">
-        <h3 className="font-bold text-sm text-neutral-900 mb-3">💚 TrueMoney Box</h3>
-        <label className="flex items-center justify-between border border-neutral-200 rounded px-3 py-2 mb-4">
-          <span className="text-sm font-semibold">ใช้ TrueMoney Box สำหรับรับเงิน</span>
-          <input
-            type="checkbox"
-            checked={useTrueMoneyBox}
-            onChange={(e) => setUseTrueMoneyBox(e.target.checked)}
-            className="w-5 h-5"
-          />
-        </label>
-
+      {/* TrueMoney */}
+      <div className="card card-pad" style={{ marginBottom: 14 }}>
+        <h3 className="sec-title" style={{ fontSize: 15, marginBottom: 4 }}>💚 TrueMoney Box</h3>
+        <div className="lrow" style={{ marginBottom: useTrueMoneyBox ? 12 : 0 }}>
+          <div className="grow"><div className="lname">ใช้ TrueMoney Box รับเงิน</div></div>
+          <Switch on={useTrueMoneyBox} onClick={() => setUseTrueMoneyBox((v) => !v)} />
+        </div>
         {useTrueMoneyBox && (
-          <div className="space-y-3 mb-4 p-3 bg-blue-50 rounded-lg">
-            <div>
-              <label className="block text-sm font-semibold mb-1">
-                Secret Key (ตั้งเองอะไรก็ได้)
-              </label>
-              <input
-                value={trueMoneySecret}
-                onChange={(e) => setTrueMoneySecret(e.target.value)}
-                placeholder="เช่น cafeqr123"
-                className="w-full border border-neutral-300 rounded px-3 py-2 text-sm"
-              />
-              <p className="text-xs text-neutral-500 mt-1">
-                ตั้งรหัสลับไว้กันคนอื่นยิงข้อมูลปลอมเข้ามา (ต้องตรงกับใน URL ด้านล่าง)
-              </p>
+          <div style={{ background: "var(--ground)", borderRadius: 12, padding: 14 }}>
+            <div className="field">
+              <label>Secret Key (ตั้งเองอะไรก็ได้)</label>
+              <input className="input" value={trueMoneySecret} onChange={(e) => setTrueMoneySecret(e.target.value)} placeholder="เช่น cafeqr123" />
             </div>
-
-            <div>
-              <label className="block text-sm font-semibold mb-1">
-                Webhook URL (นำไปใส่ในแอป TrueMoney)
-              </label>
-              <div className="bg-white border border-neutral-300 rounded px-3 py-2 text-xs break-all font-mono select-all">
-                {typeof window !== "undefined" ? window.location.origin : ""}
-                /api/webhook/truemoney{trueMoneySecret ? `?secret=${trueMoneySecret}` : ""}
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label>Webhook URL (ใส่ในแอป TrueMoney)</label>
+              <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 10, padding: "10px 12px", fontSize: 12, wordBreak: "break-all", fontFamily: "monospace" }} className="select-all">
+                {webhookUrl}
               </div>
-              <p className="text-xs text-neutral-500 mt-1">
-                คัดลอก URL นี้ไปใส่ในแอป TrueMoney หน้า “แจ้งการรับเงิน”
-              </p>
             </div>
           </div>
         )}
       </div>
 
-      <button
-        onClick={save}
-        className="px-4 py-2 rounded-full bg-[var(--accent)] text-white text-sm font-semibold"
-      >
-        บันทึก
-      </button>
-      {saved && <span className="ml-3 text-green-600 text-sm">บันทึกแล้ว ✓</span>}
+      {/* บันทึก */}
+      <div className="flex items-center gap-3" style={{ marginBottom: 14 }}>
+        <button onClick={save} className="btn btn-primary">บันทึกการตั้งค่า</button>
+        {saved && <span style={{ color: "var(--green)", fontSize: 14, fontWeight: 700 }}>บันทึกแล้ว ✓</span>}
+      </div>
 
-      <div className="border-t border-neutral-200 pt-6 mt-6">
-        <h3 className="font-bold text-sm text-neutral-900 mb-2">เขตอันตราย</h3>
-        <p className="text-xs text-neutral-500 mb-3">
+      {/* เขตอันตราย */}
+      <div className="card card-pad" style={{ border: "1px solid #f0b8b2" }}>
+        <h3 className="sec-title" style={{ fontSize: 15, color: "#c5352c", marginBottom: 4 }}>เขตอันตราย</h3>
+        <p style={{ fontSize: 12, color: "var(--ink-faint)", marginBottom: 12 }}>
           ล้างข้อมูลทั้งหมด: ประวัติ, ยอดขาย, สินค้า, หมวดหมู่, สินค้าแนะนำ, ธุรกรรมล่าสุด
         </p>
-        <button
-          onClick={() => setClearDataOpen(true)}
-          className="px-4 py-2 rounded bg-red-600 text-white text-sm font-semibold hover:bg-red-700"
-        >
-          ล้างข้อมูลทั้งหมด
-        </button>
+        <button onClick={() => setClearDataOpen(true)} className="btn btn-danger">ล้างข้อมูลทั้งหมด</button>
       </div>
 
       {clearDataOpen && (
-        <div className="fixed inset-0 bg-black/40 z-20 flex items-center justify-center">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="font-bold text-lg mb-4 text-red-600">⚠️ ล้างข้อมูลทั้งหมด</h3>
-            <p className="text-sm text-neutral-600 mb-4">
-              การกระทำนี้จะลบข้อมูลทั้งหมด:
-            </p>
-            <ul className="text-sm text-neutral-600 mb-6 list-disc list-inside space-y-1">
-              <li>ประวัติ และ ธุรกรรมล่าสุด</li>
-              <li>ยอดขาย และ สถานะวันนี้</li>
-              <li>สินค้า</li>
-              <li>หมวดหมู่สินค้า</li>
-              <li>สินค้าแนะนำ</li>
-            </ul>
-            <p className="text-sm font-semibold text-red-600 mb-4">
-              ⚠️ ไม่สามารถยกเลิกได้!
-            </p>
-            <div className="mb-4">
-              <label className="block text-sm font-semibold mb-2">
-                กรอกรหัสยืนยัน (123456):
-              </label>
-              <input
-                type="text"
-                placeholder="รหัส"
-                value={confirmCode}
-                onChange={(e) => setConfirmCode(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && confirmCode === CLEAR_DATA_CODE) {
-                    clearAllData();
-                  }
-                }}
-                className="w-full border border-neutral-300 rounded px-3 py-2 text-sm"
-              />
+        <div className="adm-overlay" onClick={(e) => e.target === e.currentTarget && setClearDataOpen(false)}>
+          <div className="adm-modal">
+            <div className="m-head">
+              <h3 style={{ color: "#c5352c" }}>⚠️ ล้างข้อมูลทั้งหมด</h3>
+              <button className="m-close" onClick={() => setClearDataOpen(false)}>×</button>
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={clearAllData}
-                disabled={clearing || confirmCode !== CLEAR_DATA_CODE}
-                className="flex-1 px-4 py-2 rounded bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {clearing ? "กำลังลบ..." : "ยืนยันลบ"}
-              </button>
-              <button
-                onClick={() => {
-                  setClearDataOpen(false);
-                  setConfirmCode("");
-                }}
-                className="flex-1 px-4 py-2 rounded border border-neutral-300 text-sm font-semibold"
-              >
-                ยกเลิก
-              </button>
+            <div className="m-body">
+              <p style={{ fontSize: 13.5, color: "var(--ink-soft)", marginBottom: 10 }}>การกระทำนี้จะลบข้อมูลทั้งหมด และ<b> ไม่สามารถยกเลิกได้</b></p>
+              <div className="field">
+                <label>กรอกรหัสยืนยัน (123456)</label>
+                <input
+                  className="input"
+                  type="text"
+                  value={confirmCode}
+                  onChange={(e) => setConfirmCode(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && confirmCode === CLEAR_DATA_CODE && clearAllData()}
+                  placeholder="รหัส"
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-2">
+                <button onClick={clearAllData} disabled={clearing || confirmCode !== CLEAR_DATA_CODE} className="btn btn-danger" style={{ flex: 1, background: "#c5352c", color: "#fff", borderColor: "transparent" }}>
+                  {clearing ? "กำลังลบ..." : "ยืนยันลบ"}
+                </button>
+                <button onClick={() => { setClearDataOpen(false); setConfirmCode(""); }} className="btn btn-ghost" style={{ flex: 1 }}>ยกเลิก</button>
+              </div>
             </div>
           </div>
         </div>

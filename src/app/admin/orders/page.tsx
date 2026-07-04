@@ -14,7 +14,7 @@ type TableRow = {
 };
 
 type OrderItem = { id: number; menuItemId: number; name: string; price: number; quantity: number };
-type OrderRow = { id: number; status: string; createdAt: string; items: OrderItem[] };
+type OrderRow = { id: number; status: string; createdAt: string; note?: string; items: OrderItem[] };
 type TableDetail = {
   tableId: number;
   tableName: string;
@@ -277,6 +277,11 @@ export default function OrdersPage() {
                         </li>
                       ))}
                     </ul>
+                    {o.note ? (
+                      <div className="mb-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-900">
+                        📝 หมายเหตุ: {o.note}
+                      </div>
+                    ) : null}
                     {o.status !== "CANCELLED" && (
                       <div className="flex gap-2 mt-3">
                         {o.status === "PENDING" && (

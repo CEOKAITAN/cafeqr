@@ -6,9 +6,9 @@ import ProductsContent from "./products-content";
 import FeaturedContent from "./featured-content";
 
 const TABS = [
-  { id: "categories", label: "จัดการหมวดหมู่สินค้า" },
-  { id: "products", label: "จัดการสินค้า" },
-  { id: "featured", label: "จัดการสินค้าแนะนำ" },
+  { id: "categories", label: "หมวดหมู่" },
+  { id: "products", label: "สินค้า" },
+  { id: "featured", label: "สินค้าแนะนำ" },
 ];
 
 export default function ManagePage() {
@@ -16,29 +16,26 @@ export default function ManagePage() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-xl font-extrabold text-[var(--accent-dark)] mb-4">จัดการสินค้า</h1>
+      <div className="page-head">
+        <h1>จัดการสินค้า</h1>
+        <p>หมวดหมู่ · สินค้า · สินค้าแนะนำ</p>
+      </div>
 
-      <div className="flex gap-2 mb-4 overflow-x-auto pb-2">
+      <div className="pills" style={{ marginBottom: 18 }}>
         {TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors ${
-              activeTab === tab.id
-                ? "bg-[var(--accent)] text-white"
-                : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200"
-            }`}
+            className={`pill ${activeTab === tab.id ? "on" : "off"}`}
           >
             {tab.label}
           </button>
         ))}
       </div>
 
-      <div className="bg-white border border-orange-100 rounded-2xl p-6 w-full shadow-sm">
-        {activeTab === "categories" && <CategoriesContent />}
-        {activeTab === "products" && <ProductsContent />}
-        {activeTab === "featured" && <FeaturedContent />}
-      </div>
+      {activeTab === "categories" && <CategoriesContent />}
+      {activeTab === "products" && <ProductsContent />}
+      {activeTab === "featured" && <FeaturedContent />}
     </div>
   );
 }

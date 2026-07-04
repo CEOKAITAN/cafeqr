@@ -16,9 +16,19 @@ type MenuItem = {
   featured: boolean;
 };
 
-type Category = { id: number; name: string };
+type Category = { id: number; name: string; icon: string };
+
+const BADGES: Record<string, { label: string; color: string }> = {
+  HOT: { label: "🔥 ขายดี", color: "#E23744" },
+  NEW: { label: "✨ ใหม่", color: "#2E8B57" },
+  PROMO: { label: "🏷️ โปร", color: "#C7891B" },
+};
 
 const emptyForm = { name: "", description: "", badge: "", price: "", categoryId: "", imageUrl: "", featured: false };
+
+function baht(n: number) {
+  return `฿${n.toLocaleString()}`;
+}
 
 export default function ProductsContent() {
   const [items, setItems] = useState<MenuItem[]>([]);
@@ -26,17 +36,11 @@ export default function ProductsContent() {
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [moveCategoryOpen, setMoveCategoryOpen] = useState(false);
-  const [moveTargetCategory, setMoveTargetCategory] = useState<string>("");
   const [searchText, setSearchText] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
 
   const load = useCallback(async () => {
-    const [menuRes, catRes] = await Promise.all([
-      fetch("/api/menu"),
-      fetch("/api/categories"),
-    ]);
+    const [menuRes, catRes] = await Promise.all([fetch("/api/menu"), fetch("/api/categories")]);
     if (menuRes.ok) setItems(await menuRes.json());
     if (catRes.ok) setCategories(await catRes.json());
   }, []);
@@ -57,6 +61,7 @@ export default function ProductsContent() {
       imageUrl: item.imageUrl || "",
       featured: item.featured,
     });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function resetForm() {
@@ -65,7 +70,10 @@ export default function ProductsContent() {
   }
 
   async function save() {
-    if (!form.name.trim() || !form.price) return;
+    if (!form.name.trim() || !form.price) {
+      alert("กรุณากรอกชื่อสินค้าและราคา");
+      return;
+    }
     const payload = {
       name: form.name.trim(),
       description: form.description.trim() || null,
@@ -104,75 +112,7 @@ export default function ProductsContent() {
   async function remove(id: number) {
     if (!confirm("ลบสินค้านี้?")) return;
     await fetch(`/api/menu/${id}`, { method: "DELETE" });
-    setSelected((prev) => {
-      const newSet = new Set(prev);
-      newSet.delete(id);
-      return newSet;
-    });
     load();
-  }
-
-  async function bulkDelete() {
-    if (selected.size === 0) return;
-    if (!confirm(`ลบสินค้า ${selected.size} อัน?`)) return;
-    console.log("Deleting items:", Array.from(selected));
-    const results = await Promise.all(
-      Array.from(selected).map((id) => fetch(`/api/menu/${id}`, { method: "DELETE" }))
-    );
-    console.log("Delete results:", results.map((r) => r.status));
-    setSelected(new Set());
-    load();
-  }
-
-  async function bulkToggleAvailable(available: boolean) {
-    if (selected.size === 0) return;
-    await Promise.all(
-      Array.from(selected).map((id) =>
-        fetch(`/api/menu/${id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ available }),
-        })
-      )
-    );
-    setSelected(new Set());
-    load();
-  }
-
-  async function bulkMoveCategory() {
-    if (selected.size === 0 || !moveTargetCategory) return;
-    const categoryId = moveTargetCategory ? Number(moveTargetCategory) : null;
-    await Promise.all(
-      Array.from(selected).map((id) =>
-        fetch(`/api/menu/${id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ categoryId }),
-        })
-      )
-    );
-    setSelected(new Set());
-    setMoveCategoryOpen(false);
-    setMoveTargetCategory("");
-    load();
-  }
-
-  function toggleSelect(id: number) {
-    const newSet = new Set(selected);
-    if (newSet.has(id)) newSet.delete(id);
-    else newSet.add(id);
-    setSelected(newSet);
-  }
-
-  function toggleSelectAll() {
-    if (selected.size === items.length) setSelected(new Set());
-    else setSelected(new Set(items.map((it) => it.id)));
-  }
-
-  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    processFile(file);
   }
 
   async function processFile(file: File) {
@@ -191,308 +131,143 @@ export default function ProductsContent() {
     }
   }
 
-  function handleDragOver(e: React.DragEvent<HTMLDivElement>) {
-    e.preventDefault();
-    e.stopPropagation();
+  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
   }
-
   function handleDrop(e: React.DragEvent<HTMLDivElement>) {
     e.preventDefault();
-    e.stopPropagation();
     const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith("image/")) {
-      processFile(file);
-    }
+    if (file) processFile(file);
   }
 
-  return (
-    <div className="space-y-4">
-      <div className="flex gap-3 mb-4">
-        <input
-          type="text"
-          placeholder="ค้นหาสินค้า..."
-          value={searchText}
-          onChange={(e) => {
-            setSearchText(e.target.value);
-            setSelected(new Set());
-          }}
-          className="flex-1 border border-neutral-300 rounded px-3 py-2 text-sm"
-        />
-        <select
-          value={filterCategory}
-          onChange={(e) => {
-            setFilterCategory(e.target.value);
-            setSelected(new Set());
-          }}
-          className="border border-neutral-300 rounded px-3 py-2 text-sm"
-        >
-          <option value="">ทั้งหมด</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </div>
+  const filtered = items.filter((item) => {
+    const matchSearch = searchText === "" || item.name.toLowerCase().includes(searchText.toLowerCase());
+    const matchCategory = filterCategory === "" || item.categoryId === Number(filterCategory);
+    return matchSearch && matchCategory;
+  });
 
-      <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
-        <h3 className="font-bold text-sm mb-3">{editingId ? "แก้ไขสินค้า" : "เพิ่มสินค้าใหม่"}</h3>
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            placeholder="ชื่อสินค้า"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-            className="border border-neutral-300 rounded px-3 py-2 text-sm col-span-2"
-          />
-          <input
-            placeholder="คำอธิบายสั้นๆ (เช่น เครื่องดื่มเย็นสดชื่น)"
-            value={form.description}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-            className="border border-neutral-300 rounded px-3 py-2 text-sm col-span-2"
-          />
-          <input
-            placeholder="ราคา (บาท)"
-            type="number"
-            value={form.price}
-            onChange={(e) => setForm({ ...form, price: e.target.value })}
-            className="border border-neutral-300 rounded px-3 py-2 text-sm"
-          />
-          <select
-            value={form.categoryId}
-            onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
-            className="border border-neutral-300 rounded px-3 py-2 text-sm"
-          >
-            <option value="">ไม่มีหมวดหมู่</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-          <select
-            value={form.badge}
-            onChange={(e) => setForm({ ...form, badge: e.target.value })}
-            className="border border-neutral-300 rounded px-3 py-2 text-sm col-span-2"
-          >
+  const chips = [{ id: "", label: "ทั้งหมด", icon: "🍽️" }, ...categories.map((c) => ({ id: String(c.id), label: c.name, icon: c.icon }))];
+
+  return (
+    <div>
+      {/* ฟอร์มเพิ่ม/แก้ไข */}
+      <div className="card card-pad" style={{ marginBottom: 16 }}>
+        <h3 className="sec-title" style={{ fontSize: 15 }}>{editingId ? "แก้ไขสินค้า" : "เพิ่มสินค้าใหม่"}</h3>
+        <div className="field">
+          <label>ชื่อสินค้า</label>
+          <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="เช่น ลาเต้เย็น" />
+        </div>
+        <div className="field">
+          <label>คำอธิบายสั้น ๆ</label>
+          <input className="input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="เช่น กาแฟนมนุ่มละมุน เย็นชื่นใจ" />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label>ราคา (บาท)</label>
+            <input className="input" type="number" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="55" />
+          </div>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label>หมวดหมู่</label>
+            <select className="select" value={form.categoryId} onChange={(e) => setForm({ ...form, categoryId: e.target.value })}>
+              <option value="">ไม่มีหมวดหมู่</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="field" style={{ marginTop: 14 }}>
+          <label>ป้ายสินค้า</label>
+          <select className="select" value={form.badge} onChange={(e) => setForm({ ...form, badge: e.target.value })}>
             <option value="">ไม่มีป้าย</option>
             <option value="HOT">🔥 ขายดี</option>
             <option value="NEW">✨ ใหม่</option>
             <option value="PROMO">🏷️ โปรโมชัน</option>
           </select>
-          <div className="col-span-2">
-            <label className="block text-xs font-semibold mb-2">รูปภาพ</label>
-            <div
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
-              className="border-2 border-dashed border-neutral-300 rounded-lg p-8 text-center bg-white hover:bg-neutral-50 transition-colors cursor-pointer"
-            >
-              <input
-                type="file"
-                id="image-upload"
-                accept="image/*"
-                onChange={handleImageUpload}
-                disabled={uploading}
-                className="hidden"
-              />
-              <label htmlFor="image-upload" className="cursor-pointer block">
-                <div className="text-4xl mb-3">📷</div>
-                <div className="text-sm font-bold text-neutral-900 mb-2">
-                  {uploading ? "กำลังอัปโหลด..." : "กรุณาอัปโหลดรูปภาพสินค้า"}
-                </div>
-                <div className="text-xs text-neutral-500 mb-4">
-                  สินค้าจำเป็นต้องมีรูปภาพ เพื่อให้ลูกค้าสามารถมองเห็นสินค้าได้ชัดเจน
-                </div>
-                <div className="text-[11px] text-neutral-400 border-t border-neutral-200 pt-3">
-                  ขนาดไฟล์แต่ละ 1:1 (Square) และไม่เกิน 5MB รองรับไฟล์ .jpg, .jpeg, .png
-                </div>
-              </label>
-            </div>
-            {form.imageUrl && (
-              <div className="mt-3">
-                <div className="text-xs font-semibold text-neutral-600 mb-2">ตัวอย่างรูป:</div>
-                <div className="relative inline-block">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={form.imageUrl}
-                    alt="preview"
-                    className="h-24 w-24 rounded object-cover border border-neutral-300"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-          <label className="flex items-center gap-2 text-sm col-span-2">
-            <input
-              type="checkbox"
-              checked={form.featured}
-              onChange={(e) => setForm({ ...form, featured: e.target.checked })}
-            />
-            ตั้งเป็นสินค้าแนะนำ
-          </label>
         </div>
-        <div className="flex gap-2 mt-3">
-          <button
-            onClick={save}
-            className="px-4 py-2 rounded-full bg-[var(--accent)] text-white text-sm font-semibold"
+        <div className="field">
+          <label>รูปภาพสินค้า</label>
+          <div
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={handleDrop}
+            style={{
+              border: "2px dashed var(--line)",
+              borderRadius: 14,
+              padding: 22,
+              textAlign: "center",
+              background: "var(--ground)",
+              cursor: "pointer",
+            }}
           >
-            {editingId ? "บันทึกการแก้ไข" : "+ เพิ่มสินค้า"}
-          </button>
-          {editingId && (
-            <button
-              onClick={resetForm}
-              className="px-4 py-2 rounded border border-neutral-300 text-sm font-semibold"
-            >
-              ยกเลิก
-            </button>
+            <input type="file" id="prod-image" accept="image/*" onChange={handleImageUpload} disabled={uploading} style={{ display: "none" }} />
+            <label htmlFor="prod-image" style={{ cursor: "pointer", display: "block" }}>
+              <div style={{ fontSize: 34, marginBottom: 6 }}>📷</div>
+              <div style={{ fontWeight: 700, fontSize: 14 }}>
+                {uploading ? "กำลังอัปโหลด..." : form.imageUrl ? "เปลี่ยนรูปภาพ" : "อัปโหลดรูปภาพสินค้า"}
+              </div>
+              <div style={{ fontSize: 11.5, color: "var(--ink-faint)", marginTop: 4 }}>รูป 1:1 ไม่เกิน 5MB · .jpg .png</div>
+            </label>
+          </div>
+          {form.imageUrl && (
+            <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 10 }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={form.imageUrl} alt="preview" style={{ width: 72, height: 72, borderRadius: 12, objectFit: "cover", border: "1px solid var(--line)" }} />
+              <button onClick={() => setForm({ ...form, imageUrl: "" })} className="btn btn-danger" style={{ padding: "7px 12px", fontSize: 13 }}>ลบรูป</button>
+            </div>
           )}
+        </div>
+        <label className="flex items-center gap-2" style={{ fontSize: 14, cursor: "pointer", marginBottom: 14 }}>
+          <input type="checkbox" checked={form.featured} onChange={(e) => setForm({ ...form, featured: e.target.checked })} style={{ width: 18, height: 18 }} />
+          ตั้งเป็นสินค้าแนะนำ
+        </label>
+        <div className="flex gap-2">
+          <button onClick={save} className="btn btn-primary">{editingId ? "บันทึกการแก้ไข" : "＋ เพิ่มสินค้า"}</button>
+          {editingId && <button onClick={resetForm} className="btn btn-ghost">ยกเลิก</button>}
         </div>
       </div>
 
-      {(() => {
-        const filtered = items.filter((item) => {
-          const matchSearch =
-            searchText === "" ||
-            item.name.toLowerCase().includes(searchText.toLowerCase());
-          const matchCategory =
-            filterCategory === "" || item.categoryId === Number(filterCategory);
-          return matchSearch && matchCategory;
-        });
+      {/* ค้นหา + ชิปกรอง */}
+      <input className="input" placeholder="🔍 ค้นหาสินค้า..." value={searchText} onChange={(e) => setSearchText(e.target.value)} style={{ marginBottom: 12 }} />
+      <div className="chips" style={{ marginBottom: 14 }}>
+        {chips.map((c) => (
+          <button key={c.id} className={`chip ${filterCategory === c.id ? "on" : ""}`} onClick={() => setFilterCategory(c.id)}>
+            <span>{c.icon}</span> {c.label}
+          </button>
+        ))}
+      </div>
 
-        return (
-          <>
-            {selected.size > 0 && (
-        <div className="flex gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg items-center flex-wrap">
-          <span className="text-sm font-semibold text-blue-900">เลือกแล้ว {selected.size} อัน</span>
-          <div className="flex gap-2 ml-auto">
-            <button
-              onClick={() => setMoveCategoryOpen(true)}
-              className="px-3 py-1.5 text-sm rounded bg-blue-600 text-white font-semibold"
-            >
-              ย้ายหมวดหมู่
-            </button>
-            <button
-              onClick={bulkDelete}
-              className="px-3 py-1.5 text-sm rounded bg-red-600 text-white font-semibold"
-            >
-              ลบ {selected.size} อัน
-            </button>
-          </div>
-        </div>
-      )}
-
-      {moveCategoryOpen && (
-        <div className="fixed inset-0 bg-black/40 z-20 flex items-center justify-center">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
-            <h3 className="font-bold text-lg mb-4">ย้ายสินค้า {selected.size} อัน</h3>
-            <select
-              value={moveTargetCategory}
-              onChange={(e) => setMoveTargetCategory(e.target.value)}
-              className="w-full border border-neutral-300 rounded px-3 py-2 text-sm mb-4"
-            >
-              <option value="">ไม่มีหมวดหมู่</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            <div className="flex gap-2">
-              <button
-                onClick={bulkMoveCategory}
-                className="flex-1 px-4 py-2 rounded-full bg-[var(--accent)] text-white text-sm font-semibold"
-              >
-                ย้าย
-              </button>
-              <button
-                onClick={() => {
-                  setMoveCategoryOpen(false);
-                  setMoveTargetCategory("");
-                }}
-                className="flex-1 px-4 py-2 rounded border border-neutral-300 text-sm font-semibold"
-              >
-                ยกเลิก
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="bg-white border border-neutral-200 rounded-lg divide-y divide-neutral-100">
-            {filtered.length > 0 && (
-              <div className="flex items-center justify-between px-4 py-3 bg-neutral-50">
-                <label className="flex items-center gap-2 text-sm font-semibold">
-                  <input
-                    type="checkbox"
-                    checked={selected.size === filtered.length && filtered.length > 0}
-                    onChange={() => {
-                      if (selected.size === filtered.length) setSelected(new Set());
-                      else setSelected(new Set(filtered.map((it) => it.id)));
-                    }}
-                    className="w-5 h-5 cursor-pointer"
-                  />
-                  เลือกทั้งหมด
-                </label>
-              </div>
+      {/* รายการสินค้า */}
+      {filtered.map((item) => (
+        <div key={item.id} className="lrow" style={{ opacity: item.available ? 1 : 0.5 }}>
+          <span className="disc">
+            {item.imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={item.imageUrl} alt={item.name} />
+            ) : (
+              <span>🍽️</span>
             )}
-            {filtered.map((item) => (
-          <div
-            key={item.id}
-            className={`flex items-center justify-between px-4 py-3 ${
-              !item.available ? "opacity-50" : ""
-            }`}
-          >
-            <div className="flex items-center gap-3 flex-1">
-              <input
-                type="checkbox"
-                checked={selected.has(item.id)}
-                onChange={() => toggleSelect(item.id)}
-                className="w-5 h-5 cursor-pointer"
-              />
-              <div>
-                <div className="font-semibold text-sm flex items-center gap-2">
-                  {item.name}
-                  {item.featured && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--accent)] text-white font-bold">
-                      แนะนำ
-                    </span>
-                  )}
-                </div>
-                <div className="text-xs text-neutral-400">
-                  {item.categoryName} · ฿{item.price.toLocaleString()}
-                </div>
-              </div>
+          </span>
+          <div className="grow">
+            <div className="lname" style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              {item.name}
+              {item.badge && BADGES[item.badge] && (
+                <span className="minibadge" style={{ background: BADGES[item.badge].color }}>{BADGES[item.badge].label}</span>
+              )}
+              {item.featured && <span className="minibadge" style={{ background: "var(--accent)" }}>⭐ แนะนำ</span>}
             </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => toggleAvailable(item)}
-                className="text-sm px-4 py-2 rounded border border-neutral-300 text-neutral-600 font-semibold"
-              >
-                {item.available ? "ปิดขาย" : "เปิดขาย"}
-              </button>
-              <button
-                onClick={() => startEdit(item)}
-                className="text-sm px-4 py-2 rounded border border-neutral-300 text-neutral-600 font-semibold"
-              >
-                แก้ไข
-              </button>
-              <button
-                onClick={() => remove(item.id)}
-                className="text-sm px-4 py-2 rounded border border-red-200 text-red-600 font-semibold"
-              >
-                ลบ
-              </button>
-            </div>
+            <div className="lsub">{item.categoryName} · {baht(item.price)}</div>
           </div>
-            ))}
-            {filtered.length === 0 && (
-              <p className="text-center text-neutral-400 text-sm py-6">
-                {items.length === 0 ? "ยังไม่มีสินค้า" : "ไม่พบสินค้าที่ค้นหา"}
-              </p>
-            )}
-          </div>
-          </>
-        );
-      })()}
+          <button onClick={() => toggleAvailable(item)} className="icon-btn-sm" title={item.available ? "ปิดขาย" : "เปิดขาย"}>
+            {item.available ? "🟢" : "⚪"}
+          </button>
+          <button onClick={() => startEdit(item)} className="icon-btn-sm" title="แก้ไข">✏️</button>
+          <button onClick={() => remove(item.id)} className="icon-btn-sm danger" title="ลบ">🗑</button>
+        </div>
+      ))}
+      {filtered.length === 0 && (
+        <p className="empty-note">{items.length === 0 ? "ยังไม่มีสินค้า" : "ไม่พบสินค้าที่ค้นหา"}</p>
+      )}
     </div>
   );
 }

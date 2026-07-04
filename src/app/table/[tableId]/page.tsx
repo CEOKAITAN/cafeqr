@@ -63,7 +63,9 @@ export default function TableOrderPage() {
   const [error, setError] = useState("");
   const [acceptingOrders, setAcceptingOrders] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [promptPayId, setPromptPayId] = useState("");
   const [payOpen, setPayOpen] = useState(false);
+  const [payMethod, setPayMethod] = useState<"choose" | "cash" | "qr">("choose");
   const [payQr, setPayQr] = useState("");
   const [payTotal, setPayTotal] = useState(0);
   const [payLoading, setPayLoading] = useState(false);
@@ -95,6 +97,7 @@ export default function TableOrderPage() {
       .then((data) => {
         setAcceptingOrders(data.acceptingOrders);
         setShopName(data.shopName || "");
+        setPromptPayId(data.promptPayId || "");
         setBannerUrl(data.bannerUrl || "");
         setPromoText(data.promoText || "");
         setHeroImageUrl(data.heroImageUrl || "");
@@ -150,11 +153,21 @@ export default function TableOrderPage() {
     });
   }
 
-  async function openPayment() {
+  function openPayment() {
     if (!sessionId || total <= 0) return;
-    setPayLoading(true);
     setPaid(false);
+    setPayQr("");
+    setPayMethod("choose");
+    setPayTotal(total);
     setError("");
+    setPayOpen(true);
+  }
+
+  // เลือกพร้อมเพย์ → สร้าง QR (ถ้ามีเบอร์พร้อมเพย์), ถ้าไม่มี → โชว์ "อยู่ในช่วงพัฒนา"
+  async function chooseQr() {
+    setPayMethod("qr");
+    if (!promptPayId || !sessionId) return; // ไม่มีเบอร์ → หน้า qr จะโชว์ข้อความพัฒนา
+    setPayLoading(true);
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
@@ -162,12 +175,12 @@ export default function TableOrderPage() {
         body: JSON.stringify({ sessionId }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "สร้าง QR ไม่สำเร็จ");
-      setPayQr(data.qrDataUrl);
-      setPayTotal(data.total);
-      setPayOpen(true);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "เกิดข้อผิดพลาด");
+      if (res.ok) {
+        setPayQr(data.qrDataUrl);
+        setPayTotal(data.total);
+      }
+    } catch {
+      /* ปล่อยให้ payQr ว่าง → โชว์ข้อความพัฒนา */
     } finally {
       setPayLoading(false);
     }
@@ -175,7 +188,7 @@ export default function TableOrderPage() {
 
   // ระหว่างเปิด QR — เช็คทุก 3 วิ ว่าจ่ายเงินสำเร็จหรือยัง (webhook TrueMoney ปิด session)
   useEffect(() => {
-    if (!payOpen || !sessionId || paid) return;
+    if (!payOpen || payMethod !== "qr" || !payQr || !sessionId || paid) return;
     const check = async () => {
       const res = await fetch(`/api/checkout/status?sessionId=${sessionId}`);
       if (!res.ok) return;
@@ -187,7 +200,7 @@ export default function TableOrderPage() {
     };
     const interval = setInterval(check, 3000);
     return () => clearInterval(interval);
-  }, [payOpen, sessionId, paid]);
+  }, [payOpen, payMethod, payQr, sessionId, paid]);
 
   function closePayment() {
     setPayOpen(false);
@@ -618,20 +631,86 @@ export default function TableOrderPage() {
                     <span className="text-[var(--accent-dark)]">฿{payTotal.toLocaleString()}</span>
                   </div>
                 </div>
-                {payQr && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={payQr} alt="QR ชำระเงิน" className="w-56 h-56 mx-auto" />
+
+                {/* เลือกวิธีชำระ */}
+                {payMethod === "choose" && (
+                  <div className="space-y-3 text-left">
+                    <button
+                      onClick={() => setPayMethod("cash")}
+                      className="w-full flex items-center gap-3 border border-orange-100 rounded-2xl p-4 hover:border-[var(--accent)] transition-colors"
+                    >
+                      <span className="w-11 h-11 rounded-xl bg-green-100 flex items-center justify-center text-2xl">💵</span>
+                      <span>
+                        <span className="block font-bold text-sm">ชำระเงินสด</span>
+                        <span className="block text-xs text-gray-400">จ่ายที่เคาน์เตอร์กับพนักงาน</span>
+                      </span>
+                      <span className="ml-auto text-gray-300 text-xl">›</span>
+                    </button>
+                    <button
+                      onClick={chooseQr}
+                      className="w-full flex items-center gap-3 border border-orange-100 rounded-2xl p-4 hover:border-[var(--accent)] transition-colors"
+                    >
+                      <span className="w-11 h-11 rounded-xl bg-blue-100 flex items-center justify-center text-2xl">📱</span>
+                      <span>
+                        <span className="block font-bold text-sm">พร้อมเพย์ / สแกน QR</span>
+                        <span className="block text-xs text-gray-400">สแกนจ่าย แล้วรอร้านยืนยัน</span>
+                      </span>
+                      <span className="ml-auto text-gray-300 text-xl">›</span>
+                    </button>
+                  </div>
                 )}
-                <div className="mt-4 text-2xl font-bold text-[var(--accent-dark)]">
-                  ฿{payTotal.toLocaleString()}
-                </div>
-                <div className="mt-3 flex items-center justify-center gap-2 text-sm text-gray-500">
-                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                  รอการชำระเงิน...
-                </div>
-                <p className="mt-4 text-xs text-gray-400">
-                  สแกน QR แล้วโอนตามยอด ระบบจะยืนยันให้อัตโนมัติ
-                </p>
+
+                {/* เงินสด */}
+                {payMethod === "cash" && (
+                  <div className="text-center pt-2">
+                    <div className="w-20 h-20 mx-auto rounded-full bg-green-100 flex items-center justify-center text-4xl mb-3">🧾</div>
+                    <div className="text-xs text-gray-400">ยอดที่ต้องชำระ</div>
+                    <div className="text-3xl font-bold text-green-600">฿{payTotal.toLocaleString()}</div>
+                    <p className="text-sm text-gray-500 mt-3 leading-relaxed">
+                      ชำระที่เคาน์เตอร์ได้เลยค่ะ 🙏
+                      <br />
+                      ขอบคุณที่อุดหนุน ไว้มาอุดหนุนใหม่นะคะ 🧡
+                    </p>
+                    <button onClick={() => setPayMethod("choose")} className="mt-4 text-sm text-gray-500 font-semibold">
+                      ← เลือกวิธีอื่น
+                    </button>
+                  </div>
+                )}
+
+                {/* พร้อมเพย์ / QR */}
+                {payMethod === "qr" && (
+                  <div className="text-center">
+                    {promptPayId && payQr ? (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={payQr} alt="QR ชำระเงิน" className="w-56 h-56 mx-auto" />
+                        <div className="mt-2 text-2xl font-bold text-[var(--accent-dark)]">฿{payTotal.toLocaleString()}</div>
+                        <div className="mt-2 flex items-center justify-center gap-2 text-sm text-gray-500">
+                          <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                          โอนแล้ว รอร้านยืนยัน...
+                        </div>
+                        <p className="mt-3 text-xs text-gray-400">
+                          สแกน QR แล้วโอนตามยอด จากนั้นรอร้านตรวจสอบและยืนยันสักครู่
+                        </p>
+                      </>
+                    ) : promptPayId && payLoading ? (
+                      <p className="py-10 text-sm text-gray-400">กำลังสร้าง QR...</p>
+                    ) : (
+                      <div className="pt-2">
+                        <div className="w-20 h-20 mx-auto rounded-full bg-orange-100 flex items-center justify-center text-4xl mb-3">🚧</div>
+                        <h4 className="font-bold text-lg">ขออภัย · อยู่ในช่วงพัฒนา</h4>
+                        <p className="text-sm text-gray-500 mt-2 leading-relaxed">
+                          ระบบสแกนจ่ายยังไม่พร้อมใช้งาน กรุณาชำระเงินที่เคาน์เตอร์ได้เลยค่ะ 🙏
+                          <br />
+                          ขอบคุณที่อุดหนุน ไว้มาอุดหนุนใหม่นะคะ 🧡
+                        </p>
+                      </div>
+                    )}
+                    <button onClick={() => setPayMethod("choose")} className="mt-4 text-sm text-gray-500 font-semibold">
+                      ← เลือกวิธีอื่น
+                    </button>
+                  </div>
+                )}
               </>
             )}
           </div>

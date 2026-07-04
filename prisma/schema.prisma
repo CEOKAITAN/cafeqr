@@ -72,6 +72,7 @@ model Order {
   session   Session     @relation(fields: [sessionId], references: [id])
   sessionId Int
   status    String      @default("PENDING") // PENDING | COOKING | DONE | CANCELLED
+  note      String      @default("")
   createdAt DateTime    @default(now())
   items     OrderItem[]
 }

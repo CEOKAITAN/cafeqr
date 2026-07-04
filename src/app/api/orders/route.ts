@@ -29,9 +29,10 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { sessionId, items } = body as {
+  const { sessionId, items, note } = body as {
     sessionId: number;
     items: { menuItemId: number; quantity: number }[];
+    note?: string;
   };
 
   if (!sessionId || !Array.isArray(items) || items.length === 0) {
@@ -66,6 +67,7 @@ export async function POST(req: NextRequest) {
     data: {
       sessionId,
       status: "PENDING",
+      note: typeof note === "string" ? note.trim().slice(0, 500) : "",
       items: {
         create: items.map((it) => {
           const m = menuMap.get(it.menuItemId)!;

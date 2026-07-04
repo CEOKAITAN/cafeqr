@@ -1,0 +1,150 @@
+/* ธีมหลังบ้าน — port จากดีไซน์ POTIO CAFE Admin (standalone prototype)
+   ทุก selector scope ใต้ .adm เพื่อไม่ให้ชนกับ utilities อื่น */
+
+.adm {
+  --ground: #fbf6f1;
+  --backdrop: #ede3d8;
+  --card: #ffffff;
+  --ink: #2a1b12;
+  --ink-soft: #7a6a5e;
+  --ink-faint: #a99c90;
+  --accent: #e8692b;
+  --accent-deep: #b84a16;
+  --accent-wash: #fbebe0;
+  --line: rgba(42, 27, 18, 0.12);
+  --line-soft: rgba(42, 27, 18, 0.08);
+  --blue: #2563eb;
+  --blue-bg: #eaf1ff;
+  --blue-bd: #9dbef5;
+  --green: #2e8b57;
+  --green-bg: #e7f6ec;
+  --green-bd: #8bd6a9;
+  color: var(--ink);
+  font-family: var(--font-noto-thai), "Noto Sans Thai", system-ui, sans-serif;
+  line-height: 1.45;
+}
+.adm *, .adm *::before, .adm *::after { box-sizing: border-box; }
+.adm button, .adm input, .adm select, .adm textarea { font-family: inherit; }
+
+@keyframes adm-pop { 0% { transform: scale(.9); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+@keyframes adm-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.7); } }
+@keyframes adm-toast { 0% { opacity: 0; transform: translateX(-50%) translateY(16px); } 100% { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+/* page heading */
+.adm .page-head { padding-bottom: 16px; border-bottom: 1px solid var(--line-soft); margin-bottom: 20px; }
+.adm .page-head h1 { margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.01em; }
+.adm .page-head p { margin: 6px 0 0; font-size: 14px; color: var(--ink-soft); }
+.adm .sec-title { font-size: 17px; font-weight: 800; margin: 0 0 12px; }
+
+/* ---- stat cards ---- */
+.adm .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+@media (min-width: 900px) { .adm .stat-grid { grid-template-columns: repeat(4, 1fr); } }
+.adm .stat-card { background: var(--card); border: 1px solid var(--line-soft); border-radius: 16px; padding: 16px; box-shadow: 0 8px 20px -16px rgba(42,27,18,0.5); display: flex; align-items: center; gap: 13px; }
+.adm .stat-card .ic { width: 44px; height: 44px; border-radius: 13px; display: grid; place-items: center; font-size: 22px; flex-shrink: 0; }
+.adm .stat-card .lbl { font-size: 12.5px; color: var(--ink-soft); }
+.adm .stat-card .val { font-size: 21px; font-weight: 800; letter-spacing: -0.01em; margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+/* ---- generic card ---- */
+.adm .card { background: var(--card); border: 1px solid var(--line-soft); border-radius: 16px; box-shadow: 0 8px 20px -16px rgba(42,27,18,0.5); }
+.adm .card-pad { padding: 16px; }
+
+/* ---- table (recent orders / history) ---- */
+.adm .tbl-wrap { background: var(--card); border: 1px solid var(--line-soft); border-radius: 16px; overflow: hidden; box-shadow: 0 8px 20px -16px rgba(42,27,18,0.5); }
+.adm .tbl-scroll { overflow-x: auto; }
+.adm table.data { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.adm table.data th { background: var(--ground); text-align: left; padding: 11px 14px; font-weight: 800; color: var(--ink-soft); white-space: nowrap; border-bottom: 2px solid var(--accent); }
+.adm table.data td { padding: 11px 14px; border-bottom: 1px solid var(--line-soft); }
+.adm table.data tr:last-child td { border-bottom: 0; }
+.adm table.data .num { font-variant-numeric: tabular-nums; font-weight: 700; }
+.adm .tbl-empty { padding: 48px 16px; text-align: center; color: var(--ink-faint); font-size: 14px; }
+
+/* ---- status badge ---- */
+.adm .sbadge { display: inline-block; font-size: 11.5px; font-weight: 800; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+
+/* ---- pill tabs (history / manage) ---- */
+.adm .pills { display: flex; gap: 8px; flex-wrap: wrap; }
+.adm .pill { border: 0; cursor: pointer; font-weight: 800; font-size: 13.5px; padding: 8px 18px; border-radius: 999px; transition: transform .1s; }
+.adm .pill:active { transform: scale(.97); }
+.adm .pill.on { background: linear-gradient(145deg, var(--accent), var(--accent-deep)); color: #fff; box-shadow: 0 8px 16px -8px rgba(184,74,22,0.55); }
+.adm .pill.off { background: #f1e7dd; color: var(--ink-soft); }
+
+/* ---- buttons ---- */
+.adm .btn { border: 0; cursor: pointer; font-weight: 800; font-size: 14px; padding: 11px 18px; border-radius: 12px; transition: transform .1s, opacity .15s; }
+.adm .btn:active { transform: scale(.98); }
+.adm .btn-primary { background: linear-gradient(145deg, var(--accent), var(--accent-deep)); color: #fff; box-shadow: 0 10px 22px -8px rgba(184,74,22,0.55); }
+.adm .btn-green { background: linear-gradient(145deg, #34e27a, #22c55e); color: #fff; box-shadow: 0 10px 22px -8px rgba(34,197,94,0.55); }
+.adm .btn-ghost { background: var(--card); border: 1px solid var(--line); color: var(--ink-soft); }
+.adm .btn-danger { background: var(--card); border: 1px solid #f0b8b2; color: #c5352c; }
+.adm .btn:disabled { opacity: .45; cursor: default; box-shadow: none; transform: none; }
+.adm .btn-block { width: 100%; }
+
+/* ---- toggle switch ---- */
+.adm .switch { position: relative; width: 52px; height: 28px; border-radius: 999px; border: 0; cursor: pointer; padding: 0; transition: background .2s; flex-shrink: 0; }
+.adm .switch .knob { position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.25); transition: transform .2s; }
+
+/* ---- table grid (orders page) ---- */
+.adm .table-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+@media (min-width: 640px) { .adm .table-grid { grid-template-columns: repeat(3, 1fr); } }
+.adm .tcard { text-align: left; border-radius: 16px; border: 2px solid var(--line); padding: 14px; cursor: pointer; transition: transform .1s, box-shadow .15s; box-shadow: 0 6px 16px -14px rgba(42,27,18,0.5); }
+.adm .tcard:active { transform: scale(.98); }
+.adm .tcard .tname { font-size: 19px; font-weight: 800; }
+.adm .tcard .trow { display: flex; align-items: center; gap: 6px; margin-top: 8px; font-size: 12.5px; color: var(--ink-soft); }
+.adm .tcard .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.adm .tcard .tcount { margin-top: 6px; font-size: 12.5px; color: var(--ink-soft); }
+.adm .tadd { border: 2px dashed var(--line); background: transparent; border-radius: 16px; padding: 14px; cursor: pointer; display: grid; place-items: center; min-height: 96px; color: var(--ink-faint); font-weight: 700; font-size: 13px; transition: border-color .15s; }
+.adm .tadd:hover { border-color: var(--accent); color: var(--accent-deep); }
+
+/* ---- order detail ---- */
+.adm .odetail { background: var(--card); border: 1px solid var(--line-soft); border-radius: 16px; padding: 16px; box-shadow: 0 8px 20px -16px rgba(42,27,18,0.5); }
+.adm .ocard { border: 1px solid var(--line-soft); border-radius: 14px; padding: 13px; margin-bottom: 12px; }
+.adm .ocard:last-child { margin-bottom: 0; }
+.adm .ocard-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.adm .ocard-id { font-size: 11.5px; color: var(--ink-faint); }
+.adm .oline { display: flex; justify-content: space-between; font-size: 13.5px; padding: 2px 0; }
+.adm .oline .num { font-variant-numeric: tabular-nums; font-weight: 700; }
+.adm .onote { margin-top: 8px; font-size: 12.5px; color: #8a5a20; background: #fdf3e2; border: 1px solid #f2dcae; border-radius: 8px; padding: 6px 10px; }
+.adm .oactions { display: flex; gap: 8px; margin-top: 12px; }
+.adm .oactions .btn { flex: 1; padding: 9px; border-radius: 999px; }
+
+/* ---- form fields ---- */
+.adm .field { margin-bottom: 14px; }
+.adm .field label { display: block; font-size: 13px; font-weight: 700; color: var(--ink-soft); margin-bottom: 6px; }
+.adm .input, .adm .select, .adm .textarea { width: 100%; border: 1px solid var(--line); background: var(--card); border-radius: 12px; padding: 11px 13px; font-size: 14px; color: var(--ink); }
+.adm .textarea { resize: vertical; min-height: 72px; }
+.adm .input:focus, .adm .select:focus, .adm .textarea:focus { outline: none; border-color: var(--accent); }
+
+/* ---- filter chips (products) ---- */
+.adm .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.adm .chips::-webkit-scrollbar { display: none; }
+.adm .chip { flex-shrink: 0; border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; background: var(--card); color: var(--ink-soft); }
+.adm .chip.on { background: linear-gradient(145deg, var(--accent), var(--accent-deep)); color: #fff; border-color: transparent; }
+
+/* ---- list rows (categories / products / featured) ---- */
+.adm .lrow { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--line-soft); border-radius: 14px; margin-bottom: 10px; background: var(--card); }
+.adm .lrow .disc { width: 46px; height: 46px; border-radius: 13px; display: grid; place-items: center; font-size: 22px; flex-shrink: 0; overflow: hidden; background: var(--accent-wash); }
+.adm .lrow .disc img { width: 100%; height: 100%; object-fit: cover; }
+.adm .lrow .grow { flex: 1; min-width: 0; }
+.adm .lrow .lname { font-weight: 700; font-size: 14.5px; }
+.adm .lrow .lsub { font-size: 12px; color: var(--ink-faint); margin-top: 2px; }
+.adm .lrow .drag { color: var(--ink-faint); cursor: grab; font-size: 18px; }
+.adm .icon-btn-sm { width: 34px; height: 34px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); cursor: pointer; display: grid; place-items: center; font-size: 15px; color: var(--ink-soft); flex-shrink: 0; }
+.adm .icon-btn-sm.danger { color: #c5352c; border-color: #f0b8b2; }
+.adm .minibadge { font-size: 10.5px; font-weight: 800; color: #fff; padding: 2px 8px; border-radius: 999px; }
+
+/* ---- modal ---- */
+.adm-overlay { position: fixed; inset: 0; z-index: 60; background: rgba(30,18,10,0.5); display: grid; place-items: center; padding: 20px; }
+.adm-modal { background: var(--ground); border-radius: 22px; width: 100%; max-width: 400px; max-height: 90vh; overflow-y: auto; box-shadow: 0 30px 60px -20px rgba(0,0,0,0.5); animation: adm-pop .25s ease; position: relative; }
+.adm-modal.wide { max-width: 520px; }
+.adm-modal .m-head { padding: 18px 20px 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line-soft); position: sticky; top: 0; background: var(--ground); border-radius: 22px 22px 0 0; }
+.adm-modal .m-head h3 { margin: 0; font-size: 18px; font-weight: 800; }
+.adm-modal .m-close { width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--card); font-size: 20px; cursor: pointer; color: var(--ink-soft); box-shadow: 0 2px 6px rgba(42,27,18,0.1); }
+.adm-modal .m-body { padding: 18px 20px 22px; }
+
+/* fake QR */
+.adm .qr { display: grid; grid-template-columns: repeat(25, 1fr); grid-template-rows: repeat(25, 1fr); width: 200px; height: 200px; margin: 8px auto; background: #fff; }
+.adm .qr i { display: block; }
+
+/* toast */
+.adm-toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 90; background: #23653b; color: #fff; font-weight: 700; font-size: 13.5px; padding: 12px 22px; border-radius: 999px; box-shadow: 0 14px 28px -8px rgba(0,0,0,0.4); animation: adm-toast .3s ease; }
+
+.adm .empty-note { text-align: center; color: var(--ink-faint); font-size: 14px; padding: 40px 16px; }
